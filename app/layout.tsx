@@ -7,6 +7,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { Toaster } from "@/components/ui/toaster"
+import { Analytics } from "@/components/analytics"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   title: "ESSEN | Your Essential Living Expert",
   description:
     "Visit our showroom to experience premium furniture designs. Exclusive in-store offers and free design consultations available.",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -32,18 +33,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${playfair.variable} ${inter.variable} font-sans`}>
+      <body className={`${playfair.variable} ${inter.variable} font-sans` } suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <ScrollToTop />
           <Header />
           <main>{children}</main>
           <Footer />
           <Toaster />
+          {/* Add Umami Analytics - replace with your website ID and URL */}
+          <Analytics
+            websiteId="54916b42-5a01-4abc-b870-1e4e47e444f0" 
+            umamiUrl="https://analytics.umami.is/script.js"
+          />
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
-
-import './globals.css'

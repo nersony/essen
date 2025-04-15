@@ -6,6 +6,8 @@ import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Star } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useUmami } from "@/hooks/use-umami" // Add this import
+import { TrackClick } from "@/components/track-click" // Add this import
 
 interface GoogleReview {
   author_name: string
@@ -30,6 +32,7 @@ export function GoogleReviewsSection() {
   const [reviewsData, setReviewsData] = useState<GoogleReviewsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { trackEvent } = useUmami() // Add this hook
 
   // Function to fetch reviews - only called once on component mount
   const fetchReviews = async () => {
@@ -50,42 +53,32 @@ export function GoogleReviewsSection() {
       if (data.error) {
         console.warn("API returned error:", data.error)
         setError(data.error)
+        // Track error
+        trackEvent("reviews_load_error", { error: data.error })
       }
 
       // Even if there's an error, we'll still use the fallback data provided by the API
       setReviewsData(data)
+      
+      // Track successful review loading
+      trackEvent("reviews_loaded", { 
+        count: data.reviews?.length || 0,
+        fallback: !!data.fallback,
+        total_reviews: data.total_reviews || 0
+      })
     } catch (err) {
       console.error("Error fetching reviews:", err)
       setError("Unable to load reviews at this time")
+      
+      // Track error
+      trackEvent("reviews_load_error", { error: String(err) })
+      
       // Set fallback data if API call completely fails
       setReviewsData({
         rating: 4.8,
         total_reviews: 32,
         reviews: [
-          {
-            author_name: "Yvonne Lim",
-            profile_photo_url: "/placeholder.svg?height=60&width=60",
-            rating: 5,
-            text: "Excellent service and quality furniture. The staff were very helpful and knowledgeable. Highly recommend!",
-            relative_time_description: "a month ago",
-            time: Date.now() / 1000 - 30 * 24 * 60 * 60,
-          },
-          {
-            author_name: "Jia Hui",
-            profile_photo_url: "/placeholder.svg?height=60&width=60",
-            rating: 5,
-            text: "Great experience shopping at Essen. The furniture is beautiful and well-made. Delivery was prompt and the assembly service was excellent.",
-            relative_time_description: "2 months ago",
-            time: Date.now() / 1000 - 60 * 24 * 60 * 60,
-          },
-          {
-            author_name: "Yvonne Tan",
-            profile_photo_url: "/placeholder.svg?height=60&width=60",
-            rating: 5,
-            text: "Bought a sofa from them and I'm very satisfied with the quality and comfort. The staff were patient and helped me choose the right fabric.",
-            relative_time_description: "3 months ago",
-            time: Date.now() / 1000 - 90 * 24 * 60 * 60,
-          },
+          // Fallback reviews
         ],
         fallback: true,
       })
@@ -97,26 +90,32 @@ export function GoogleReviewsSection() {
   useEffect(() => {
     // Initial fetch - only happens once when component mounts
     fetchReviews()
-
-    // No interval is set - we rely on server-side revalidation
-    // and page refreshes to get new data
   }, [])
 
-  // If we have a complete failure and no data at all
-  if (error && !reviewsData) {
-    return (
-      <section className="py-16 bg-secondary">
-        <div className="container text-center">
-          <div className="essen-section-subtitle">CUSTOMER REVIEWS</div>
-          <h2 className="essen-section-title mb-12">WHAT OUR CUSTOMERS SAY</h2>
-          <p className="text-muted-foreground">{error}</p>
-        </div>
-      </section>
+  // Track when the reviews section becomes visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          trackEvent("section_view", { section: "google_reviews" })
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.5 }
     )
-  }
+    
+    const element = document.getElementById("google-reviews-section")
+    if (element) {
+      observer.observe(element)
+    }
+    
+    return () => {
+      observer.disconnect()
+    }
+  }, [trackEvent])
 
   return (
-    <section className="py-16 bg-secondary">
+    <section id="google-reviews-section" className="py-16 bg-secondary">
       <div className="container">
         <div className="essen-section-subtitle">CUSTOMER REVIEWS</div>
         <h2 className="essen-section-title mb-12">WHAT OUR CUSTOMERS SAY</h2>
@@ -129,14 +128,16 @@ export function GoogleReviewsSection() {
               />
             ))}
           </div>
-          <Link
-            href="https://maps.app.goo.gl/5YNjVuRRjCyGjNuY7"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-2 font-medium hover:text-primary transition-colors"
-          >
-            {reviewsData?.rating || 4.8}/5 from {reviewsData?.total_reviews || 32} Google Reviews
-          </Link>
+          <TrackClick eventName="google_reviews_link_click" eventData={{ rating: reviewsData?.rating || 4.8 }}>
+            <Link
+              href="https://maps.app.goo.gl/5YNjVuRRjCyGjNuY7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 font-medium hover:text-primary transition-colors"
+            >
+              {reviewsData?.rating || 4.8}/5 from {reviewsData?.total_reviews || 32} Google Reviews
+            </Link>
+          </TrackClick>
         </div>
 
         {reviewsData?.fallback && !loading && (
@@ -152,7 +153,10 @@ export function GoogleReviewsSection() {
                 <Card key={index} className="border">
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center text-center space-y-4">
-                      <Skeleton className="h-16 w-16 rounded-full" />
+                      <Skeleton
+                        className="h-16 w-16 rounded-full"
+                        data-sidebar="menu-skeleton-icon"
+                      />
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
                           <Skeleton key={i} className="h-4 w-4 mx-0.5" />
@@ -170,7 +174,11 @@ export function GoogleReviewsSection() {
                 </Card>
               ))
             : reviewsData?.reviews.map((review, index) => (
-                <Card key={index} className="border">
+                <Card key={index} className="border" 
+                      onMouseEnter={() => trackEvent("review_hover", { 
+                        review_author: review.author_name,
+                        review_index: index
+                      })}>
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center text-center space-y-4">
                       <Image

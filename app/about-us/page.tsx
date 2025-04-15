@@ -1,6 +1,7 @@
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { QualityIcon, DesignIcon, SustainabilityIcon } from "@/components/value-icons"
+import { TrackClick } from "@/components/track-click"
 
 export default function AboutUs() {
   return (
@@ -185,9 +186,11 @@ export default function AboutUs() {
             perfect space.
           </p>
           <div className="mt-8">
-            <a href="/visit-us" className="essen-button-secondary bg-white text-primary hover:bg-white/90">
-              PLAN YOUR VISIT
-            </a>
+            <TrackClick eventName="cta_click" eventData={{ location: "about_us", cta_text: "PLAN YOUR VISIT" }}>
+              <a href="/visit-us" className="essen-button-secondary bg-white text-primary hover:bg-white/90">
+                PLAN YOUR VISIT
+              </a>
+            </TrackClick>
           </div>
         </div>
       </section>

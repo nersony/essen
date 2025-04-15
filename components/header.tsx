@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/components/ui/navigation-menu"
 import { Menu, Phone } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { TrackClick } from "@/components/track-click" // Add this import
 
 export function Header() {
   const pathname = usePathname()
@@ -16,55 +17,67 @@ export function Header() {
       <header className="sticky top-0 z-50 w-full bg-background border-b">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-6 md:gap-10">
-            <Link href="/" className="flex items-center">
-              <div style={{ width: "180px", height: "48px", position: "relative" }}>
-                <Image
-                  src="/images/essen-header-logo.png"
-                  alt="ESSEN - Your Essential Living Expert"
-                  fill
-                  style={{ objectFit: "contain" }}
-                  priority
-                  unoptimized
-                />
-              </div>
-            </Link>
+            <TrackClick eventName="logo_click" eventData={{ location: "header" }}>
+              <Link href="/" className="flex items-center">
+                <div style={{ width: "180px", height: "48px", position: "relative" }}>
+                  <Image
+                    src="/images/essen-header-logo.png"
+                    alt="ESSEN - Your Essential Living Expert"
+                    fill
+                    style={{ objectFit: "contain" }}
+                    priority
+                    unoptimized
+                  />
+                </div>
+              </Link>
+            </TrackClick>
             <nav className="hidden md:flex gap-6">
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
-                    <Link href="/" className="uppercase text-sm font-medium px-4">
-                      HOME
-                    </Link>
+                    <TrackClick eventName="navigation" eventData={{ destination: "home" }}>
+                      <Link href="/" className="uppercase text-sm font-medium px-4">
+                        HOME
+                      </Link>
+                    </TrackClick>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/visit-us" className="uppercase text-sm font-medium px-4">
-                      VISIT US
-                    </Link>
+                    <TrackClick eventName="navigation" eventData={{ destination: "visit_us" }}>
+                      <Link href="/visit-us" className="uppercase text-sm font-medium px-4">
+                        VISIT US
+                      </Link>
+                    </TrackClick>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/about-us" className="uppercase text-sm font-medium px-4">
-                      ABOUT US
-                    </Link>
+                    <TrackClick eventName="navigation" eventData={{ destination: "about_us" }}>
+                      <Link href="/about-us" className="uppercase text-sm font-medium px-4">
+                        ABOUT US
+                      </Link>
+                    </TrackClick>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/contact" className="uppercase text-sm font-medium px-4">
-                      CONTACT
-                    </Link>
+                    <TrackClick eventName="navigation" eventData={{ destination: "contact" }}>
+                      <Link href="/contact" className="uppercase text-sm font-medium px-4">
+                        CONTACT
+                      </Link>
+                    </TrackClick>
                   </NavigationMenuItem>
                 </NavigationMenuList>
               </NavigationMenu>
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <Link
-              href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
-              className="hidden md:flex"
-            >
-              <Button variant="outline" size="sm" className="ml-2">
-                <Phone className="mr-2 h-4 w-4" />
-                WhatsApp
-              </Button>
-            </Link>
+            <TrackClick eventName="contact_method_click" eventData={{ method: "whatsapp_header" }}>
+              <Link
+                href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
+                className="hidden md:flex"
+              >
+                <Button variant="outline" size="sm" className="ml-2">
+                  <Phone className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </Button>
+              </Link>
+            </TrackClick>
             <Sheet>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon" aria-label="Menu">
@@ -73,27 +86,37 @@ export function Header() {
               </SheetTrigger>
               <SheetContent side="right">
                 <div className="flex flex-col gap-6 py-6">
-                  <Link href="/" className="text-lg font-medium uppercase">
-                    HOME
-                  </Link>
-                  <Link href="/visit-us" className="text-lg font-medium uppercase">
-                    VISIT US
-                  </Link>
-                  <Link href="/about-us" className="text-lg font-medium uppercase">
-                    ABOUT US
-                  </Link>
-                  <Link href="/contact" className="text-lg font-medium uppercase">
-                    CONTACT
-                  </Link>
-                  <Link
-                    href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
-                    className="mt-4"
-                  >
-                    <Button variant="outline" className="w-full">
-                      <Phone className="mr-2 h-4 w-4" />
-                      WhatsApp Chat
-                    </Button>
-                  </Link>
+                  <TrackClick eventName="mobile_navigation" eventData={{ destination: "home" }}>
+                    <Link href="/" className="text-lg font-medium uppercase">
+                      HOME
+                    </Link>
+                  </TrackClick>
+                  <TrackClick eventName="mobile_navigation" eventData={{ destination: "visit_us" }}>
+                    <Link href="/visit-us" className="text-lg font-medium uppercase">
+                      VISIT US
+                    </Link>
+                  </TrackClick>
+                  <TrackClick eventName="mobile_navigation" eventData={{ destination: "about_us" }}>
+                    <Link href="/about-us" className="text-lg font-medium uppercase">
+                      ABOUT US
+                    </Link>
+                  </TrackClick>
+                  <TrackClick eventName="mobile_navigation" eventData={{ destination: "contact" }}>
+                    <Link href="/contact" className="text-lg font-medium uppercase">
+                      CONTACT
+                    </Link>
+                  </TrackClick>
+                  <TrackClick eventName="contact_method_click" eventData={{ method: "whatsapp_mobile_menu" }}>
+                    <Link
+                      href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
+                      className="mt-4"
+                    >
+                      <Button variant="outline" className="w-full">
+                        <Phone className="mr-2 h-4 w-4" />
+                        WhatsApp Chat
+                      </Button>
+                    </Link>
+                  </TrackClick>
                 </div>
               </SheetContent>
             </Sheet>

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CalendarClock, Star, MapPin, Phone } from "lucide-react"
 import { GoogleReviewsSection } from "@/components/google-reviews-section"
 import { SimplifiedContactForm } from "@/components/simplified-contact-form"
+import { TrackClick } from "@/components/track-click" // Add this import
 
 export default function Home() {
   const featuredProducts = [
@@ -58,12 +59,16 @@ export default function Home() {
           <p className="mt-4 text-2xl sm:text-3xl md:text-4xl uppercase">To Transform Your Home</p>
           <p className="mt-4 text-xl max-w-xl">Just 5 minutes from downtown Singapore</p>
           <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <Link href="/visit-us" className="essen-button-secondary bg-white hover:bg-white/90 text-base">
-              VIEW MORE
-            </Link>
-            <Link href="/visit-us" className="essen-button-primary text-base">
-              SHOP NOW
-            </Link>
+            <TrackClick eventName="cta_click" eventData={{ location: "hero", cta_text: "VIEW MORE" }}>
+              <Link href="/visit-us" className="essen-button-secondary bg-white hover:bg-white/90 text-base">
+                VIEW MORE
+              </Link>
+            </TrackClick>
+            <TrackClick eventName="cta_click" eventData={{ location: "hero", cta_text: "SHOP NOW" }}>
+              <Link href="/visit-us" className="essen-button-primary text-base">
+                SHOP NOW
+              </Link>
+            </TrackClick>
           </div>
           <div className="mt-8">
             <div className="limited-time-badge text-base">
@@ -89,16 +94,18 @@ export default function Home() {
                 <div>
                   <h3 className="font-bold">Location</h3>
                   <p className="text-muted-foreground">
-                    <Link
-                      href="https://maps.app.goo.gl/5YNjVuRRjCyGjNuY7"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-primary"
-                    >
-                      36 Jalan Kilang Barat
-                      <br />
-                      Singapore 159366
-                    </Link>
+                    <TrackClick eventName="location_click" eventData={{ section: "store_info" }}>
+                      <Link
+                        href="https://maps.app.goo.gl/5YNjVuRRjCyGjNuY7"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-primary"
+                      >
+                        36 Jalan Kilang Barat
+                        <br />
+                        Singapore 159366
+                      </Link>
+                    </TrackClick>
                   </p>
                 </div>
               </div>
@@ -107,12 +114,14 @@ export default function Home() {
                 <div>
                   <h3 className="font-bold">Contact</h3>
                   <p className="text-muted-foreground">
-                    <Link
-                      href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
-                      className="hover:text-primary"
-                    >
-                      Whatsapp: +65 6019 0775
-                    </Link>
+                    <TrackClick eventName="contact_method_click" eventData={{ method: "whatsapp", section: "store_info" }}>
+                      <Link
+                        href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
+                        className="hover:text-primary"
+                      >
+                        Whatsapp: +65 6019 0775
+                      </Link>
+                    </TrackClick>
                   </p>
                 </div>
               </div>
@@ -126,27 +135,31 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex justify-start mt-6">
-                <Link
-                  href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
-                  className="essen-button-primary"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Contact Us
-                </Link>
+                <TrackClick eventName="cta_click" eventData={{ location: "store_info", cta_text: "Contact Us" }}>
+                  <Link
+                    href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
+                    className="essen-button-primary"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Contact Us
+                  </Link>
+                </TrackClick>
               </div>
             </div>
             <div className="map-container">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.7982326290084!2d103.80229491475403!3d1.2896110990636652!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31da1bd0af54a8c9%3A0x7c70de73c54ea256!2s36%20Jalan%20Kilang%20Barat%2C%20Singapore%20159366!5e0!3m2!1sen!2ssg!4v1650000000000!5m2!1sen!2ssg"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="ESSEN Furniture Store Location"
-              ></iframe>
+              <TrackClick eventName="map_interaction" eventData={{ section: "store_info" }}>
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.7982326290084!2d103.80229491475403!3d1.2896110990636652!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31da1bd0af54a8c9%3A0x7c70de73c54ea256!2s36%20Jalan%20Kilang%20Barat%2C%20Singapore%20159366!5e0!3m2!1sen!2ssg!4v1650000000000!5m2!1sen!2ssg"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="ESSEN Furniture Store Location"
+                ></iframe>
+              </TrackClick>
             </div>
           </div>
         </div>
@@ -160,17 +173,27 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {featuredProducts.map((product) => (
               <div key={product.id} className="bg-white">
-                <Link href={product.href}>
-                  <div className="aspect-square overflow-hidden">
-                    <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      width={400}
-                      height={400}
-                      className="h-full w-full object-cover transition-transform hover:scale-105"
-                    />
-                  </div>
-                </Link>
+                <TrackClick 
+                  eventName="product_click" 
+                  eventData={{ 
+                    product_id: product.id,
+                    product_name: product.name,
+                    product_category: product.category,
+                    product_price: product.price
+                  }}
+                >
+                  <Link href={product.href}>
+                    <div className="aspect-square overflow-hidden">
+                      <Image
+                        src={product.image || "/placeholder.svg"}
+                        alt={product.name}
+                        width={400}
+                        height={400}
+                        className="h-full w-full object-cover transition-transform hover:scale-105"
+                      />
+                    </div>
+                  </Link>
+                </TrackClick>
                 <div className="p-4 text-center">
                   <h3 className="font-medium">{product.name}</h3>
                   <p className="text-sm text-muted-foreground">{product.category}</p>
@@ -180,9 +203,11 @@ export default function Home() {
             ))}
           </div>
           <div className="mt-12 text-center">
-            <Link href="/visit-us" className="essen-button-primary">
-              VIEW MORE
-            </Link>
+            <TrackClick eventName="cta_click" eventData={{ location: "weekly_best_sellers", cta_text: "VIEW MORE" }}>
+              <Link href="/visit-us" className="essen-button-primary">
+                VIEW MORE
+              </Link>
+            </TrackClick>
           </div>
         </div>
       </section>
@@ -224,6 +249,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+            
             <Card className="border">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center space-y-4">
@@ -255,6 +281,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+            
             <Card className="border">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center space-y-4">
@@ -288,9 +315,11 @@ export default function Home() {
             </Card>
           </div>
           <div className="mt-12 text-center">
-            <Link href="/visit-us" className="essen-button-primary">
-              PLAN YOUR VISIT
-            </Link>
+            <TrackClick eventName="cta_click" eventData={{ location: "in_store_perks", cta_text: "PLAN YOUR VISIT" }}>
+              <Link href="/visit-us" className="essen-button-primary">
+                PLAN YOUR VISIT
+              </Link>
+            </TrackClick>
           </div>
         </div>
       </section>
@@ -299,7 +328,7 @@ export default function Home() {
       <GoogleReviewsSection />
 
       {/* Special Offer Section */}
-      <section className="py-16">
+      <section className="py-16" id="special-offer-section">
         <div className="container">
           <div className="essen-section-subtitle">THIS WEEKEND ONLY</div>
           <h2 className="essen-section-title mb-12">SPECIAL IN-STORE OFFER</h2>
@@ -324,9 +353,11 @@ export default function Home() {
               in-store offers.
             </p>
             <div className="mt-8">
-              <Link href="/visit-us" className="essen-button-secondary bg-white text-primary hover:bg-white/90">
-                GET DIRECTIONS
-              </Link>
+              <TrackClick eventName="cta_click" eventData={{ location: "bottom_cta", cta_text: "GET DIRECTIONS" }}>
+                <Link href="/visit-us" className="essen-button-secondary bg-white text-primary hover:bg-white/90">
+                  GET DIRECTIONS
+                </Link>
+              </TrackClick>
             </div>
           </div>
         </div>

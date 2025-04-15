@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
+import { useUmami } from "@/hooks/use-umami" // Add this import
 
 // Type for the form data
 export type FormData = {
@@ -25,6 +26,7 @@ export function SimplifiedContactForm() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { trackEvent } = useUmami() // Add this hook
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -59,6 +61,10 @@ export function SimplifiedContactForm() {
     e.preventDefault()
 
     if (!validateForm()) {
+      trackEvent("form_validation_error", { 
+        form_type: "contact",
+        errors: Object.keys(errors) 
+      })
       return
     }
 
@@ -74,6 +80,13 @@ Phone: ${formData.phone}
 
 I would like to claim the special in-store offer.
 `.trim()
+
+      // Track the form submission before opening WhatsApp
+      trackEvent("form_submit", { 
+        form_type: "special_offer", 
+        method: "whatsapp",
+        user_type: "new_lead"
+      })
 
       // Encode the message for URL
       const encodedMessage = encodeURIComponent(message)
@@ -102,6 +115,13 @@ I would like to claim the special in-store offer.
       })
     } catch (error) {
       console.error("Error processing form:", error)
+      
+      // Track the error
+      trackEvent("form_error", { 
+        form_type: "special_offer",
+        error: String(error)
+      })
+      
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again later.",
@@ -123,6 +143,7 @@ I would like to claim the special in-store offer.
           onChange={handleChange}
           className={errors.name ? "border-red-500" : ""}
           disabled={isSubmitting}
+          onFocus={() => trackEvent("form_field_focus", { field: "name" })}
         />
         {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
       </div>
@@ -137,6 +158,7 @@ I would like to claim the special in-store offer.
           onChange={handleChange}
           className={errors.email ? "border-red-500" : ""}
           disabled={isSubmitting}
+          onFocus={() => trackEvent("form_field_focus", { field: "email" })}
         />
         {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
       </div>
@@ -151,6 +173,7 @@ I would like to claim the special in-store offer.
           onChange={handleChange}
           className={errors.phone ? "border-red-500" : ""}
           disabled={isSubmitting}
+          onFocus={() => trackEvent("form_field_focus", { field: "phone" })}
         />
         {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
       </div>
