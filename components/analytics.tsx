@@ -5,11 +5,14 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 
 interface AnalyticsProps {
-  websiteId: string
+  websiteId?: string
   umamiUrl?: string
 }
 
-export function Analytics({ websiteId, umamiUrl = "https://analytics.umami.is/script.js" }: AnalyticsProps) {
+export function Analytics({ 
+  websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID, 
+  umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL || "https://analytics.umami.is/script.js" 
+}: AnalyticsProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -56,6 +59,11 @@ export function Analytics({ websiteId, umamiUrl = "https://analytics.umami.is/sc
       };
     }
   }, [pathname, searchParams])
+
+  if (!websiteId) {
+    console.warn('No Umami website ID provided. Analytics will not be tracked.');
+    return null;
+  }
 
   return (
     <Script

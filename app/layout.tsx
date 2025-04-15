@@ -41,10 +41,7 @@ export default function RootLayout({
           <Footer />
           <Toaster />
           {/* Add Umami Analytics - replace with your website ID and URL */}
-          <Analytics
-            websiteId="54916b42-5a01-4abc-b870-1e4e47e444f0" 
-            umamiUrl="https://analytics.umami.is/script.js"
-          />
+          <Analytics/>
         </ThemeProvider>
       </body>
     </html>

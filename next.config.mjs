@@ -13,6 +13,7 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone', // This creates a more optimized build for deployment
   eslint: {
     ignoreDuringBuilds: true,
   },
