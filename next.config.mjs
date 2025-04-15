@@ -28,6 +28,8 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Mark certain dynamic routes to not be statically generated
+  unstable_excludeFiles: ['**/node_modules/**'],
 }
 
 if (userConfig) {

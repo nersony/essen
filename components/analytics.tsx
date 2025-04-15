@@ -2,14 +2,15 @@
 
 import Script from "next/script"
 import { usePathname, useSearchParams } from "next/navigation"
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 
 interface AnalyticsProps {
   websiteId?: string
   umamiUrl?: string
 }
 
-export function Analytics({ 
+// Inner component that uses searchParams
+function AnalyticsContent({ 
   websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID, 
   umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL || "https://analytics.umami.is/script.js" 
 }: AnalyticsProps) {
@@ -60,11 +61,6 @@ export function Analytics({
     }
   }, [pathname, searchParams])
 
-  if (!websiteId) {
-    console.warn('No Umami website ID provided. Analytics will not be tracked.');
-    return null;
-  }
-
   return (
     <Script
       async
@@ -78,5 +74,23 @@ export function Analytics({
         document.dispatchEvent(new Event('umami.load'));
       }}
     />
+  )
+}
+
+// Main exported component with Suspense boundary
+export function Analytics({ 
+  websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID, 
+  umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL || "https://analytics.umami.is/script.js" 
+}: AnalyticsProps) {
+  // Don't render anything if no website ID
+  if (!websiteId) {
+    console.warn('No Umami website ID provided. Analytics will not be tracked.');
+    return null;
+  }
+  
+  return (
+    <Suspense fallback={null}>
+      <AnalyticsContent websiteId={websiteId} umamiUrl={umamiUrl} />
+    </Suspense>
   )
 }

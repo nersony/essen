@@ -1,15 +1,18 @@
 "use client"
+import { Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/components/ui/navigation-menu"
 import { Menu, Phone } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { TrackClick } from "@/components/track-click" // Add this import
+import { TrackClick } from "@/components/track-click" // Make sure this import exists
 
-export function Header() {
+// Inner component that uses searchParams
+function HeaderContent() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   return (
     <>
@@ -124,5 +127,24 @@ export function Header() {
         </div>
       </header>
     </>
+  )
+}
+
+// Main exported component with Suspense boundary
+export function Header() {
+  return (
+    <Suspense fallback={
+      <div>
+        <div className="w-full bg-primary h-4"></div>
+        <header className="sticky top-0 z-50 w-full bg-background border-b">
+          <div className="container flex h-16 items-center justify-between">
+            {/* Simple loading state */}
+            <div className="w-[180px] h-[48px] bg-muted animate-pulse rounded"></div>
+          </div>
+        </header>
+      </div>
+    }>
+      <HeaderContent />
+    </Suspense>
   )
 }
