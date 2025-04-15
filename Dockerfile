@@ -4,13 +4,12 @@ FROM node:18-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
-# Install sharp for image optimization
 RUN apk add --no-cache libc6-compat
 
-# Copy package files based on your package manager
+# Copy package files
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 
-# Fix: Add --legacy-peer-deps flag to npm commands to resolve dependency conflicts
+# Install dependencies
 RUN \
   if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; \
   elif [ -f pnpm-lock.yaml ]; then npm i -g pnpm && pnpm i --no-frozen-lockfile; \
@@ -20,13 +19,12 @@ RUN \
 # Build the app
 FROM base AS builder
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set environment variable to disable telemetry
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Build the application
 RUN npm run build
 
 # Production image
@@ -36,30 +34,26 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Create non-root user for security
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy necessary files for running the app
-COPY --from=builder /app/next.config.mjs ./
+# ✅ COPY built app and deps
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/.next/server ./.next/server
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
 
-# Set correct permissions
+# Permissions
 RUN chown -R nextjs:nodejs .
 
-# Use non-root user
 USER nextjs
 
-# Use port 3001 instead of 3000
+# Port config
 EXPOSE 3001
-
-# Set environment variables for the port
 ENV PORT 3001
 ENV HOSTNAME "0.0.0.0"
 
-# Use the correct command for Next.js production
+# ✅ Start with npm (so next is found in node_modules/.bin)
 CMD ["npm", "run", "start"]
