@@ -9,10 +9,12 @@ RUN apk add --no-cache libc6-compat
 
 # Copy package files based on your package manager
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
+
+# Fix: Add --legacy-peer-deps flag to npm commands to resolve dependency conflicts
 RUN \
-  if [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then npm i -g pnpm && pnpm i --frozen-lockfile; \
-  else npm i; \
+  if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; \
+  elif [ -f pnpm-lock.yaml ]; then npm i -g pnpm && pnpm i --no-frozen-lockfile; \
+  else npm i --legacy-peer-deps; \
   fi
 
 # Build the app
