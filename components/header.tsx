@@ -2,6 +2,7 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/components/ui/navigation-menu"
@@ -13,6 +14,7 @@ import { TrackClick } from "@/components/track-click" // Make sure this import e
 function HeaderContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [open, setOpen] = useState(false)
 
   return (
     <>
@@ -21,7 +23,16 @@ function HeaderContent() {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-6 md:gap-10">
             <TrackClick eventName="logo_click" eventData={{ location: "header" }}>
-              <Link href="/" className="flex items-center">
+              <Link
+                href="/"
+                className="flex items-center"
+                onClick={(e) => {
+                  if (pathname === "/") {
+                    e.preventDefault()
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                  }
+                }}
+              >
                 <div style={{ width: "180px", height: "48px", position: "relative" }}>
                   <Image
                     src="/images/essen-header-logo.png"
@@ -81,7 +92,7 @@ function HeaderContent() {
                 </Button>
               </Link>
             </TrackClick>
-            <Sheet>
+            <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild className="md:hidden">
                 <Button variant="ghost" size="icon" aria-label="Menu">
                   <Menu className="h-5 w-5" />
@@ -90,22 +101,22 @@ function HeaderContent() {
               <SheetContent side="right">
                 <div className="flex flex-col gap-6 py-6">
                   <TrackClick eventName="mobile_navigation" eventData={{ destination: "home" }}>
-                    <Link href="/" className="text-lg font-medium uppercase">
+                    <Link href="/" className="text-lg font-medium uppercase" onClick={() => setOpen(false)}>
                       HOME
                     </Link>
                   </TrackClick>
                   <TrackClick eventName="mobile_navigation" eventData={{ destination: "visit_us" }}>
-                    <Link href="/visit-us" className="text-lg font-medium uppercase">
+                    <Link href="/visit-us" className="text-lg font-medium uppercase" onClick={() => setOpen(false)}>
                       VISIT US
                     </Link>
                   </TrackClick>
                   <TrackClick eventName="mobile_navigation" eventData={{ destination: "about_us" }}>
-                    <Link href="/about-us" className="text-lg font-medium uppercase">
+                    <Link href="/about-us" className="text-lg font-medium uppercase" onClick={() => setOpen(false)}>
                       ABOUT US
                     </Link>
                   </TrackClick>
                   <TrackClick eventName="mobile_navigation" eventData={{ destination: "contact" }}>
-                    <Link href="/contact" className="text-lg font-medium uppercase">
+                    <Link href="/contact" className="text-lg font-medium uppercase" onClick={() => setOpen(false)}>
                       CONTACT
                     </Link>
                   </TrackClick>
@@ -113,6 +124,7 @@ function HeaderContent() {
                     <Link
                       href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
                       className="mt-4"
+                      onClick={() => setOpen(false)}
                     >
                       <Button variant="outline" className="w-full">
                         <Phone className="mr-2 h-4 w-4" />

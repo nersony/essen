@@ -41,7 +41,7 @@ export default function AboutUs() {
             <div>
               <h2 className="text-2xl font-bold uppercase mb-6">OUR STORY</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                Founded in 2020, Essen was born from a passion for beautiful, functional living spaces. Our founders,
+                Founded in 2024, Essen was born from a passion for beautiful, functional living spaces. Our founders,
                 having experienced the challenges of furnishing their own homes in Singapore, recognized a gap in the
                 market for high-quality, stylish furniture that doesn't compromise on affordability.
               </p>

@@ -54,7 +54,7 @@ export default function Home() {
           priority
         />
         <div className="absolute inset-0 bg-black/30" />
-        <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white">
+        <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white pt-16">
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl uppercase">Giving You The Power</h1>
           <p className="mt-4 text-2xl sm:text-3xl md:text-4xl uppercase">To Transform Your Home</p>
           <p className="mt-4 text-xl max-w-xl">Just 5 minutes from downtown Singapore</p>
@@ -147,7 +147,7 @@ export default function Home() {
                 </TrackClick>
               </div>
             </div>
-            <div className="map-container">
+            <div className="map-container overflow-hidden rounded-lg border shadow-md">
               <TrackClick eventName="map_interaction" eventData={{ section: "store_info" }}>
                 <iframe
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.7982326290084!2d103.80229491475403!3d1.2896110990636652!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31da1bd0af54a8c9%3A0x7c70de73c54ea256!2s36%20Jalan%20Kilang%20Barat%2C%20Singapore%20159366!5e0!3m2!1sen!2ssg!4v1650000000000!5m2!1sen!2ssg"
@@ -158,6 +158,7 @@ export default function Home() {
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                   title="ESSEN Furniture Store Location"
+                  className="hover:opacity-95 transition-opacity"
                 ></iframe>
               </TrackClick>
             </div>
@@ -173,27 +174,15 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {featuredProducts.map((product) => (
               <div key={product.id} className="bg-white">
-                <TrackClick 
-                  eventName="product_click" 
-                  eventData={{ 
-                    product_id: product.id,
-                    product_name: product.name,
-                    product_category: product.category,
-                    product_price: product.price
-                  }}
-                >
-                  <Link href={product.href}>
-                    <div className="aspect-square overflow-hidden">
-                      <Image
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        width={400}
-                        height={400}
-                        className="h-full w-full object-cover transition-transform hover:scale-105"
-                      />
-                    </div>
-                  </Link>
-                </TrackClick>
+                <div className="aspect-square overflow-hidden">
+                  <Image
+                    src={product.image || "/placeholder.svg"}
+                    alt={product.name}
+                    width={400}
+                    height={400}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
                 <div className="p-4 text-center">
                   <h3 className="font-medium">{product.name}</h3>
                   <p className="text-sm text-muted-foreground">{product.category}</p>
@@ -249,7 +238,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center space-y-4">
@@ -281,7 +270,7 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="border">
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center text-center space-y-4">
