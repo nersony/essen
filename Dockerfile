@@ -1,12 +1,12 @@
-FROM node:18-alpine AS base
+FROM node:18-alpine
 
-# Install dependencies only when needed
-FROM base AS deps
+# Set working directory
 WORKDIR /app
 
+# Install system dependencies
 RUN apk add --no-cache libc6-compat
 
-# Copy package files
+# Copy dependency definitions
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 
 # Install dependencies
@@ -16,44 +16,24 @@ RUN \
   else npm i --legacy-peer-deps; \
   fi
 
-# Build the app
-FROM base AS builder
-WORKDIR /app
-
-COPY --from=deps /app/node_modules ./node_modules
+# Copy app source
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN npm run build
-
-# Production image
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+# Environment variables (can be overridden by CapRover)
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3001
+ENV HOSTNAME="0.0.0.0"
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# ✅ COPY built app and deps
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
-
-# Permissions
-RUN chown -R nextjs:nodejs .
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    chown -R nextjs:nodejs /app
 
 USER nextjs
 
-# Port config
+# Expose app port
 EXPOSE 3001
-ENV PORT 3001
-ENV HOSTNAME "0.0.0.0"
 
-# ✅ Start with npm (so next is found in node_modules/.bin)
-CMD ["npm", "run", "start"]
+# Runtime build + start command
+CMD ["sh", "-c", "npm run build && npm run start"]
