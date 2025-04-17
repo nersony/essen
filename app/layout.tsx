@@ -23,7 +23,9 @@ export const metadata: Metadata = {
   title: "ESSEN | Your Essential Living Expert",
   description:
     "Visit our showroom to experience premium furniture designs. Exclusive in-store offers and free design consultations available.",
-  generator: 'v0.dev'
+  icons: {
+    icon: "/favicon.ico",
+  },
 }
 
 export default function RootLayout({
@@ -33,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${playfair.variable} ${inter.variable} font-sans` } suppressHydrationWarning>
+      <body className={`${playfair.variable} ${inter.variable} font-sans`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           <ScrollToTop />
           <Header />
@@ -41,7 +43,7 @@ export default function RootLayout({
           <Footer />
           <Toaster />
           {/* Add Umami Analytics - replace with your website ID and URL */}
-          <Analytics/>
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
