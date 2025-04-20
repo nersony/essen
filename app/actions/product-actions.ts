@@ -49,23 +49,26 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 // Get a product by ID
 export async function getProductById(id: string): Promise<Product | null> {
-  try {
-    const client = await clientPromise
-    const db = client.db()
-    const product = await db.collection(COLLECTION_NAME).findOne({ id })
-
-    if (!product) return null
-
-    return {
-      ...product,
-      id: product._id.toString(),
-      _id: undefined,
-    } as Product
-  } catch (error) {
-    console.error(`Failed to get product with ID ${id}:`, error)
-    return null
+    try {
+      const client = await clientPromise;
+      const db = client.db();
+      
+      // Use a direct ID search instead of relying on MongoDB's ObjectId
+      const product = await db.collection(COLLECTION_NAME).findOne({ id: id });
+  
+      if (!product) return null;
+  
+      // Return a cleaned version without MongoDB's _id
+      return {
+        ...product,
+        id: product.id,
+        _id: undefined,
+      } as Product;
+    } catch (error) {
+      console.error(`Failed to get product with ID ${id}:`, error);
+      return null;
+    }
   }
-}
 
 // Create a new product
 export async function createProduct(

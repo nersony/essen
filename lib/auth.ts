@@ -1,3 +1,4 @@
+// lib/auth.ts
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 
@@ -48,6 +49,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/admin/login",
+    error: "/admin/login", // Add custom error page
   },
   callbacks: {
     async session({ session, token }) {
@@ -57,5 +59,4 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
-  debug: true, // Enable debug mode to see more detailed logs
 }

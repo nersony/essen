@@ -1,6 +1,5 @@
+// app/admin/login/page.tsx
 "use client"
-
-import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -13,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default function LoginPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
-
+  
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -42,8 +41,7 @@ export default function LoginPage() {
         setError("Invalid email or password")
         setIsLoading(false)
       } else {
-        // Successful login - redirect to admin dashboard
-        router.push("/admin")
+        // Successful login - redirect will happen via the useEffect
       }
     } catch (error) {
       setError("An unexpected error occurred")

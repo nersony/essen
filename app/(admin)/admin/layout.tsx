@@ -1,5 +1,5 @@
+// app/admin/layout.tsx
 import type React from "react"
-import { redirect } from "next/navigation"
 import Link from "next/link"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
@@ -9,15 +9,9 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Check if the user is authenticated
+  // Get session for display purposes only, don't redirect
   const session = await getServerSession(authOptions)
 
-  // If not authenticated, redirect to login
-  if (!session) {
-    redirect("/admin/login")
-  }
-
-  // If we get here, the user is authenticated
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}

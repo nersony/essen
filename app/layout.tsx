@@ -4,7 +4,6 @@ import { Playfair_Display, Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
-import { Analytics } from "@/components/analytics"
 import { SessionProvider } from "@/components/session-provider"
 
 const playfair = Playfair_Display({
@@ -38,7 +37,6 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <main>{children}</main>
             <Toaster />
-            <Analytics />
           </ThemeProvider>
         </SessionProvider>
       </body>
