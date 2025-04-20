@@ -1,0 +1,176 @@
+{
+  "products": [
+    {
+      "name": "LUXORA",
+      "slug": "luxora",
+      "category": "Dining",
+      "price": 2288,
+      "description": "The Luxora dining table combines sleek design with practical functionality. Its tempered glass top and sturdy metal frame create a contemporary aesthetic that complements any dining space.",
+      "features": [
+        "Tempered glass tabletop",
+        "Sturdy metal frame",
+        "Seats up to 6 people",
+        "Easy assembly",
+        "Scratch-resistant surface"
+      ],
+      "colors": [
+        "Black",
+        "White",
+        "Grey"
+      ],
+      "images": [
+        "/images/luxora.jpg"
+      ],
+      "dimensions": {
+        "width": 180,
+        "depth": 90,
+        "height": 75
+      },
+      "materials": [
+        "Tempered glass",
+        "Powder-coated steel"
+      ],
+      "careInstructions": [
+        "Wipe clean with a damp cloth",
+        "Avoid abrasive cleaners"
+      ],
+      "deliveryTime": "2-3 weeks",
+      "returnPolicy": "30-day return policy",
+      "warranty": "2-year warranty",
+      "inStock": true,
+      "id": "2a216649-4851-4662-baef-32514c79e8f4",
+      "createdAt": "2025-04-20T18:31:53.282Z",
+      "updatedAt": "2025-04-20T18:31:53.282Z"
+    },
+    {
+      "name": "VELA",
+      "slug": "vela",
+      "category": "Dining",
+      "price": 1288,
+      "description": "The Vela dining table features a solid wood construction with a natural finish that showcases the beautiful grain patterns. Its timeless design makes it a versatile addition to any dining area.",
+      "features": [
+        "Solid wood construction",
+        "Natural finish",
+        "Seats up to 4 people",
+        "Sturdy and durable",
+        "Environmentally friendly materials"
+      ],
+      "colors": [
+        "Natural",
+        "Walnut",
+        "Oak"
+      ],
+      "images": [
+        "/images/vela.png"
+      ],
+      "dimensions": {
+        "width": 150,
+        "depth": 80,
+        "height": 75
+      },
+      "materials": [
+        "Solid oak",
+        "Engineered wood"
+      ],
+      "careInstructions": [
+        "Dust regularly",
+        "Clean spills immediately",
+        "Use coasters for hot items"
+      ],
+      "deliveryTime": "3-4 weeks",
+      "returnPolicy": "30-day return policy",
+      "warranty": "3-year warranty",
+      "inStock": true,
+      "id": "bd8e30b5-aac3-47a3-9a9d-9fba8c147c74",
+      "createdAt": "2025-04-20T18:31:53.282Z",
+      "updatedAt": "2025-04-20T18:31:53.282Z"
+    },
+    {
+      "name": "AEQUUS",
+      "slug": "aequus",
+      "category": "Living",
+      "price": 2688,
+      "description": "The Aequus sofa combines comfort and style with its plush cushions and clean lines. The premium fabric upholstery is both durable and soft to the touch, making it perfect for everyday relaxation.",
+      "features": [
+        "Premium fabric upholstery",
+        "High-density foam cushions",
+        "Solid wood frame",
+        "Removable and washable covers",
+        "Available in multiple configurations"
+      ],
+      "colors": [
+        "Beige",
+        "Grey",
+        "Blue"
+      ],
+      "images": [
+        "/images/aequus.png"
+      ],
+      "dimensions": {
+        "width": 220,
+        "depth": 95,
+        "height": 85
+      },
+      "materials": [
+        "Premium fabric",
+        "High-density foam",
+        "Solid wood"
+      ],
+      "careInstructions": [
+        "Vacuum regularly",
+        "Spot clean with mild detergent",
+        "Professional cleaning recommended"
+      ],
+      "deliveryTime": "4-6 weeks",
+      "returnPolicy": "30-day return policy",
+      "warranty": "5-year frame warranty",
+      "inStock": true,
+      "id": "158dff67-0658-4f4c-b438-7008ea0f958f",
+      "createdAt": "2025-04-20T18:31:53.282Z",
+      "updatedAt": "2025-04-20T18:31:53.282Z"
+    },
+    {
+      "name": "ECLAT",
+      "slug": "eclat",
+      "category": "Bedroom",
+      "price": 1998,
+      "description": "The Eclat bed frame features a sleek design with a padded headboard for comfort and style. Its sturdy construction ensures durability, while the neutral upholstery complements any bedroom decor.",
+      "features": [
+        "Padded headboard",
+        "Sturdy wooden slats",
+        "No box spring required",
+        "Easy assembly",
+        "Noise-free design"
+      ],
+      "colors": [
+        "Light Grey",
+        "Dark Grey",
+        "Beige"
+      ],
+      "images": [
+        "/images/eclat.jpg"
+      ],
+      "dimensions": {
+        "width": 165,
+        "depth": 215,
+        "height": 110
+      },
+      "materials": [
+        "Engineered wood",
+        "Polyester fabric",
+        "Metal supports"
+      ],
+      "careInstructions": [
+        "Vacuum regularly",
+        "Spot clean with mild detergent"
+      ],
+      "deliveryTime": "2-3 weeks",
+      "returnPolicy": "30-day return policy",
+      "warranty": "2-year warranty",
+      "inStock": true,
+      "id": "bfc76a4f-e872-43b7-855a-7e36c5f70fe9",
+      "createdAt": "2025-04-20T18:31:53.282Z",
+      "updatedAt": "2025-04-20T18:31:53.282Z"
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+import Link from "next/link"
+import { getProducts } from "@/app/actions/product-actions"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Package, ShoppingBag, Users, DollarSign } from "lucide-react"
+
+export default async function AdminDashboard() {
+  const products = await getProducts()
+
+  // In a real app, you would fetch this data from your database
+  const stats = {
+    totalProducts: products.length,
+    totalOrders: 0,
+    totalCustomers: 0,
+    totalRevenue: 0,
+  }
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalProducts}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.totalProducts > 0 ? "+1 from last month" : "No change from last month"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalOrders}</div>
+            <p className="text-xs text-muted-foreground">No orders yet</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+            <p className="text-xs text-muted-foreground">No customers yet</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">No revenue yet</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4">Recent Products</h2>
+
+        {products.length > 0 ? (
+          <div className="border rounded-md">
+            <div className="grid grid-cols-5 gap-4 p-4 font-medium border-b">
+              <div>Image</div>
+              <div>Name</div>
+              <div>Category</div>
+              <div>Price</div>
+              <div>Actions</div>
+            </div>
+
+            {products.slice(0, 5).map((product) => (
+              <div key={product.id} className="grid grid-cols-5 gap-4 p-4 items-center border-b last:border-0">
+                <div className="w-12 h-12 relative rounded overflow-hidden">
+                  <img
+                    src={product.images[0] || "/placeholder.svg?height=48&width=48"}
+                    alt={product.name}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                <div>{product.name}</div>
+                <div>{product.category}</div>
+                <div>${product.price.toFixed(2)}</div>
+                <div>
+                  <Link href={`/admin/products/${product.id}`} className="text-sm text-primary hover:underline">
+                    Edit
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 border rounded-md">
+            <p className="text-muted-foreground mb-4">No products found.</p>
+            <Link href="/admin/products/new" className="text-primary hover:underline">
+              Add your first product
+            </Link>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link href="/admin/products/new" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+            <h3 className="font-medium">Add New Product</h3>
+            <p className="text-sm text-muted-foreground">Create a new product listing</p>
+          </Link>
+
+          <Link href="/admin/categories" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+            <h3 className="font-medium">Manage Categories</h3>
+            <p className="text-sm text-muted-foreground">Add or edit product categories</p>
+          </Link>
+
+          <Link href="/admin/orders" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+            <h3 className="font-medium">View Orders</h3>
+            <p className="text-sm text-muted-foreground">Check recent customer orders</p>
+          </Link>
+
+          <Link href="/admin/settings" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+            <h3 className="font-medium">Settings</h3>
+            <p className="text-sm text-muted-foreground">Configure store settings</p>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
