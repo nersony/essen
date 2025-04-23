@@ -27,7 +27,7 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'dev-essen.xyzap.site',
-        port: '3001',
+        port: '3002',
         pathname: '/uploads/**',
       },
     ],
