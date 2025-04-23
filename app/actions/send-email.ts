@@ -1,7 +1,10 @@
 "use server"
 
-import nodemailer from "nodemailer"
 import { z } from "zod"
+import { Resend } from "resend"
+
+// Initialize Resend instance
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Define the form schema for validation
 const formSchema = z.object({
@@ -22,51 +25,40 @@ export type FormResponse = {
   message: string
 }
 
-// Function to create email transporter
-function createTransporter() {
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.GMAIL_EMAIL,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  })
-}
-
-// Main function to send email
+// Main function to send email using Resend
 export async function sendEmail(formData: FormData): Promise<FormResponse> {
   try {
     // Validate form data
     const validatedData = formSchema.parse(formData)
 
-    // Create email transporter
-    const transporter = createTransporter()
-
-    // Set up email options
-    const mailOptions = {
-      from: process.env.GMAIL_EMAIL,
-      to: "enquiry@essen.sg", // Your business email
-      subject: "Special In-Store Offer Claim",
-      text: `
+    // Set up email content
+    const subject = "Special In-Store Offer Claim"
+    const text = `
 Name: ${validatedData.name}
 Email: ${validatedData.email}
 Phone: ${validatedData.phone}
 Consent: Yes
 
 This customer would like to claim the special in-store offer.
-      `.trim(),
-      html: `
+    `.trim()
+
+    const html = `
 <h2>Special In-Store Offer Claim</h2>
 <p><strong>Name:</strong> ${validatedData.name}</p>
 <p><strong>Email:</strong> ${validatedData.email}</p>
 <p><strong>Phone:</strong> ${validatedData.phone}</p>
 <p><strong>Consent:</strong> Yes</p>
 <p>This customer would like to claim the special in-store offer.</p>
-      `.trim(),
-    }
+    `.trim()
 
-    // Send email
-    await transporter.sendMail(mailOptions)
+    // Send email via Resend
+    await resend.emails.send({
+      from: "ESSEN <noreply@essen.sg>",
+      to: ["enquiry@essen.sg"],
+      subject,
+      text,
+      html,
+    })
 
     return {
       success: true,
@@ -76,7 +68,6 @@ This customer would like to claim the special in-store offer.
     console.error("Error sending email:", error)
 
     if (error instanceof z.ZodError) {
-      // Return validation errors
       return {
         success: false,
         message: "Please check the form for errors and try again.",

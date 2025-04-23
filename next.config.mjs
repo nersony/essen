@@ -22,7 +22,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-    domains: ['localhost'],
+    domains: ['dev-essen.xyzap.site'],
     remotePatterns: [
       {
         protocol: 'https',
