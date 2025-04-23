@@ -2,9 +2,9 @@ import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { getProductBySlug } from "@/app/actions/product-actions"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, RefreshCcw, Shield } from "lucide-react"
+import { AddToCartButton } from "@/components/cart/add-to-cart-button"
 
 interface ProductPageProps {
   params: {
@@ -13,7 +13,9 @@ interface ProductPageProps {
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  const product = await getProductBySlug(params.slug)
+  // Fix: Ensure params.slug is properly handled
+  const slug = params?.slug || ""
+  const product = await getProductBySlug(slug)
 
   if (!product) {
     notFound()
@@ -60,7 +62,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <div>
           <h1 className="text-3xl font-bold mb-2 uppercase">{product.name}</h1>
           <p className="text-sm text-muted-foreground uppercase mb-4">{product.category}</p>
-          <p className="text-2xl font-medium mb-6">From ${product.price.toFixed(2)}</p>
+          <p className="text-2xl font-medium mb-6">${product.price.toFixed(2)}</p>
 
           <p className="text-muted-foreground mb-6">{product.description}</p>
 
@@ -78,11 +80,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
           )}
 
-          {/* Add to Cart Button */}
-          <Button className="w-full mb-6">Add to Cart</Button>
+          {/* Add to Cart Button - Replace CheckoutButton with AddToCartButton */}
+          <AddToCartButton product={product} />
 
           {/* Delivery, Returns, Warranty */}
-          <div className="space-y-4 border-t pt-6">
+          <div className="space-y-4 border-t pt-6 mt-6">
             <div className="flex items-start space-x-3">
               <Clock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>

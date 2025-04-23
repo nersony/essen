@@ -3,6 +3,7 @@ import type React from "react"
 import Link from "next/link"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { Package, ShoppingBag, Settings, Home, LogOut } from "lucide-react"
 
 export default async function AdminLayout({
   children,
@@ -22,38 +23,44 @@ export default async function AdminLayout({
         <nav className="space-y-2">
           <Link
             href="/admin"
-            className="block px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
+            <Home className="mr-2 h-4 w-4" />
             Dashboard
           </Link>
           <Link
             href="/admin/products"
-            className="block px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
+            <Package className="mr-2 h-4 w-4" />
             Products
           </Link>
           <Link
-            href="/admin/categories"
-            className="block px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
-          >
-            Categories
-          </Link>
-          <Link
             href="/admin/orders"
-            className="block px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
+            <ShoppingBag className="mr-2 h-4 w-4" />
             Orders
           </Link>
           <Link
             href="/admin/settings"
-            className="block px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
+            <Settings className="mr-2 h-4 w-4" />
             Settings
           </Link>
         </nav>
         <div className="mt-auto pt-6 border-t mt-8">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground flex items-center">
+            <Home className="mr-2 h-4 w-4" />
             Back to Website
+          </Link>
+          <Link
+            href="/api/auth/signout"
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center mt-2"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
           </Link>
         </div>
       </div>

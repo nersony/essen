@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { SessionProvider } from "@/components/session-provider"
+import { CartProvider } from "@/context/cart-context"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -35,8 +36,10 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${inter.variable} font-sans`} suppressHydrationWarning>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <main>{children}</main>
-            <Toaster />
+            <CartProvider>
+              {children}
+              <Toaster />
+            </CartProvider>
           </ThemeProvider>
         </SessionProvider>
       </body>

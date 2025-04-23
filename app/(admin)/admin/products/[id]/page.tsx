@@ -11,20 +11,27 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
+  console.log('Edit Product Page - Params:', params)
+
   useEffect(() => {
     async function fetchProduct() {
       try {
         // Get the id from the params
         const id = params.id as string
+        console.log('Fetching product with ID:', id)
         
         // Fetch the product data
-        const response = await fetch(`/api/products/${id}`)
+        const response = await fetch(`/api/admin/products/${id}`)
+        
+        console.log('Fetch Response Status:', response.status)
         
         if (!response.ok) {
           throw new Error(`Failed to fetch product: ${response.statusText}`)
         }
         
         const data = await response.json()
+        console.log('Fetched Product Data:', data)
+        
         setProduct(data)
       } catch (err) {
         console.error("Error fetching product:", err)
@@ -34,7 +41,9 @@ export default function EditProductPage() {
       }
     }
 
-    fetchProduct()
+    if (params.id) {
+      fetchProduct()
+    }
   }, [params.id])
 
   if (loading) {
