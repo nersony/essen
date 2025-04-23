@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { verifyHmac } from "@/lib/hitpay"
+import { verifyWebhookHmac } from "@/lib/hitpay"
 import { updateOrderByPaymentId } from "@/lib/order-service"
 
 export async function POST(request: Request) {
@@ -7,21 +7,37 @@ export async function POST(request: Request) {
     // Get the HMAC signature from the header
     const hmacSignature = request.headers.get("X-HITPAY-HMAC-SHA256") || ""
 
-    // Parse the request body
-    const requestBody = await request.json()
+    // Get the raw body text for HMAC verification
+    const rawBody = await request.text()
 
-    // Verify the HMAC signature
-    const isValid = verifyHmac(hmacSignature, requestBody)
+    // Log the raw webhook payload for debugging
+    console.log("Webhook payload:", rawBody)
+    console.log("HMAC signature:", hmacSignature)
+
+    // Verify the HMAC signature with the webhook salt
+    const isValid = verifyWebhookHmac(hmacSignature, rawBody)
 
     if (!isValid) {
-      console.error("Invalid HMAC signature")
+      console.error("Invalid webhook HMAC signature")
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+    }
+
+    // Parse the body as JSON after verification
+    let requestBody
+    try {
+      requestBody = JSON.parse(rawBody)
+    } catch (error) {
+      console.error("Failed to parse webhook payload as JSON:", error)
+
+      // Try to parse as URL-encoded form data
+      const formData = new URLSearchParams(rawBody)
+      requestBody = Object.fromEntries(formData.entries())
     }
 
     // Process the webhook payload
     const { payment_id, payment_request_id, reference_number, status } = requestBody
 
-    console.log(`Payment ${payment_id} status: ${status}`)
+    console.log(`Payment ${payment_id || payment_request_id} status: ${status}`)
 
     // Map HitPay status to our order status
     let orderStatus: "pending" | "paid" | "cancelled" | "refunded"
@@ -42,7 +58,8 @@ export async function POST(request: Request) {
     }
 
     // Update order status in database
-    const result = await updateOrderByPaymentId(payment_id, orderStatus)
+    const paymentIdToUse = payment_id || payment_request_id
+    const result = await updateOrderByPaymentId(paymentIdToUse, orderStatus)
 
     if (!result.success) {
       console.error(`Failed to update order: ${result.message}`)
