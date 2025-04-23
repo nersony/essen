@@ -20,7 +20,6 @@ RUN \
 COPY . .
 
 # Environment variables (can be overridden by CapRover)
-ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3002
 ENV HOSTNAME="0.0.0.0"
@@ -36,4 +35,4 @@ USER nextjs
 EXPOSE 3002
 
 # Runtime build + start command
-CMD ["sh", "-c", "npm run dev"]
+CMD ["sh", "-c", "npm run build && npm run start"]

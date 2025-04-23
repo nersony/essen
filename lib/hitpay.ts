@@ -3,8 +3,7 @@ import crypto from "crypto"
 // HitPay API configuration
 const HITPAY_API_KEY = process.env.HITPAY_API_KEY || ""
 const HITPAY_SALT = process.env.HITPAY_SALT || ""
-const HITPAY_API_URL =
-  process.env.NODE_ENV === "production" ? "https://api.hit-pay.com/v1" : "https://api.sandbox.hit-pay.com/v1"
+const HITPAY_API_URL ="https://api.sandbox.hit-pay.com/v1"
 
 // Types for HitPay API
 export interface CreatePaymentRequest {
