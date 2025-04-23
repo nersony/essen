@@ -90,10 +90,10 @@ export async function POST(request: Request) {
         // Extract payment information
         // HitPay's webhook structure can vary, so we need to handle different formats
         const paymentId =
-            requestBody.payment_id ||
-            requestBody.id ||
+            requestBody.payment_request_id ||
             (requestBody.payment_request && requestBody.payment_request.id) ||
-            requestBody.payment_request_id
+            requestBody.payment_id ||
+            requestBody.id
 
         const referenceNumber =
             requestBody.reference_number || (requestBody.payment_request && requestBody.payment_request.reference_number)
