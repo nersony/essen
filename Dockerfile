@@ -20,7 +20,7 @@ RUN \
 COPY . .
 
 # Environment variables (can be overridden by CapRover)
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
