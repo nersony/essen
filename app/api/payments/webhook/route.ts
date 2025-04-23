@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
     // For testing purposes, if we're in development and no signature is found,
     // we'll bypass the verification
-    if (!hmacSignature && process.env.NODE_ENV === "development") {
+    if (!hmacSignature && process.env.NODE_ENV === "production") {
       console.warn("⚠️ WARNING: Bypassing HMAC verification in development mode")
     } else if (!hmacSignature) {
       console.error("No HMAC signature found in request")
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         console.log("Expected signature:", calculatedSignature)
 
         // In development, we'll allow invalid signatures for testing
-        if (process.env.NODE_ENV !== "development") {
+        if (process.env.NODE_ENV !== "production") {
           return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
         } else {
           console.warn("⚠️ WARNING: Proceeding despite invalid signature (development mode)")
