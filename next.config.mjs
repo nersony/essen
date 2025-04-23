@@ -25,9 +25,9 @@ const nextConfig = {
     domains: ['localhost'],
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3000',
+        protocol: 'https',
+        hostname: 'dev-essen.xyzap.site',
+        port: '3001',
         pathname: '/uploads/**',
       },
     ],
