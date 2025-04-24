@@ -8,6 +8,7 @@ import { Star } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useUmami } from "@/hooks/use-umami" // Add this import
 import { TrackClick } from "@/components/track-click" // Add this import
+import { Carousel, CarouselContent, CarouselDots, CarouselItem } from "./ui/carousel"
 
 interface GoogleReview {
   author_name: string
@@ -59,9 +60,9 @@ export function GoogleReviewsSection() {
 
       // Even if there's an error, we'll still use the fallback data provided by the API
       setReviewsData(data)
-      
+
       // Track successful review loading
-      trackEvent("reviews_loaded", { 
+      trackEvent("reviews_loaded", {
         count: data.reviews?.length || 0,
         fallback: !!data.fallback,
         total_reviews: data.total_reviews || 0
@@ -69,10 +70,10 @@ export function GoogleReviewsSection() {
     } catch (err) {
       console.error("Error fetching reviews:", err)
       setError("Unable to load reviews at this time")
-      
+
       // Track error
       trackEvent("reviews_load_error", { error: String(err) })
-      
+
       // Set fallback data if API call completely fails
       setReviewsData({
         rating: 4.8,
@@ -103,12 +104,12 @@ export function GoogleReviewsSection() {
       },
       { threshold: 0.5 }
     )
-    
+
     const element = document.getElementById("google-reviews-section")
     if (element) {
       observer.observe(element)
     }
-    
+
     return () => {
       observer.disconnect()
     }
@@ -146,65 +147,129 @@ export function GoogleReviewsSection() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Mobile Carousel (visible on small screens) */}
+        <div className="block md:hidden">
+          {loading ? (
+            // Show skeleton loaders while loading
+            <Carousel>
+              <CarouselContent>
+                {[...Array(3)].map((_, index) => (
+                  <CarouselItem key={index}>
+                    <Card className="border mx-2">
+                      <CardContent className="pt-6">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                          <Skeleton className="h-16 w-16 rounded-full" />
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Skeleton key={i} className="h-4 w-4 mx-0.5" />
+                            ))}
+                          </div>
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-5/6" />
+                          <Skeleton className="h-4 w-4/6" />
+                          <div>
+                            <Skeleton className="h-4 w-24 mx-auto" />
+                            <Skeleton className="h-3 w-16 mx-auto mt-1" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
+          ) : (
+            <Carousel autoplay={true} interval={6000} cooldownPeriod={12000} loop={true}>
+              <CarouselContent>
+                {reviewsData?.reviews.map((review, index) => (
+                  <CarouselItem key={index}>
+                    <Card className="border mx-2">
+                      <CardContent className="pt-6">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                          <Image
+                            src={review.profile_photo_url || "/placeholder.svg?height=60&width=60"}
+                            alt={review.author_name}
+                            width={60}
+                            height={60}
+                            className="rounded-full"
+                          />
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${i < review.rating ? "fill-primary text-primary" : "text-muted"}`}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-muted-foreground italic">"{review.text}"</p>
+                          <div>
+                            <p className="font-medium">{review.author_name}</p>
+                            <p className="text-xs text-muted-foreground">{review.relative_time_description}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselDots />
+            </Carousel>
+          )}
+        </div>
+
+        {/* Desktop Grid (visible on medium and larger screens) */}
+        <div className="hidden md:grid grid-cols-3 gap-8">
           {loading
             ? // Show skeleton loaders while loading
-              [...Array(3)].map((_, index) => (
-                <Card key={index} className="border">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col items-center text-center space-y-4">
-                      <Skeleton
-                        className="h-16 w-16 rounded-full"
-                        data-sidebar="menu-skeleton-icon"
-                      />
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <Skeleton key={i} className="h-4 w-4 mx-0.5" />
-                        ))}
-                      </div>
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-5/6" />
-                      <Skeleton className="h-4 w-4/6" />
-                      <div>
-                        <Skeleton className="h-4 w-24 mx-auto" />
-                        <Skeleton className="h-3 w-16 mx-auto mt-1" />
-                      </div>
+            [...Array(3)].map((_, index) => (
+              <Card key={index} className="border">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} className="h-4 w-4 mx-0.5" />
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-4/6" />
+                    <div>
+                      <Skeleton className="h-4 w-24 mx-auto" />
+                      <Skeleton className="h-3 w-16 mx-auto mt-1" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
             : reviewsData?.reviews.map((review, index) => (
-                <Card key={index} className="border" 
-                      onMouseEnter={() => trackEvent("review_hover", { 
-                        review_author: review.author_name,
-                        review_index: index
-                      })}>
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col items-center text-center space-y-4">
-                      <Image
-                        src={review.profile_photo_url || "/placeholder.svg?height=60&width=60"}
-                        alt={review.author_name}
-                        width={60}
-                        height={60}
-                        className="rounded-full"
-                      />
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${i < review.rating ? "fill-primary text-primary" : "text-muted"}`}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-muted-foreground italic">"{review.text}"</p>
-                      <div>
-                        <p className="font-medium">{review.author_name}</p>
-                        <p className="text-xs text-muted-foreground">{review.relative_time_description}</p>
-                      </div>
+              <Card key={index} className="border">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <Image
+                      src={review.profile_photo_url || "/placeholder.svg?height=60&width=60"}
+                      alt={review.author_name}
+                      width={60}
+                      height={60}
+                      className="rounded-full"
+                    />
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${i < review.rating ? "fill-primary text-primary" : "text-muted"}`}
+                        />
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <p className="text-muted-foreground italic">"{review.text}"</p>
+                    <div>
+                      <p className="font-medium">{review.author_name}</p>
+                      <p className="text-xs text-muted-foreground">{review.relative_time_description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
         </div>
       </div>
     </section>

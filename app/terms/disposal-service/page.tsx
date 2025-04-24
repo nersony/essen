@@ -1,3 +1,14 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Disposal Service",
+  description:
+    "Information about ESSEN Singapore's furniture disposal service, including fees and what items can be disposed of when purchasing new furniture.",
+  alternates: {
+    canonical: "https://essen.sg/terms/disposal-service",
+  },
+}
+
 export default function DisposalServicePage() {
   return (
     <div>

@@ -5,6 +5,36 @@ import { PromoHero } from "@/components/promo-hero"
 import { PromoCard } from "@/components/promo-card"
 import { SimplifiedContactForm } from "@/components/simplified-contact-form"
 import { PromoImagePlaceholder } from "@/components/promo-image-placeholder"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Promotions | Limited Time Furniture Deals",
+  description:
+    "Explore current promotions and limited-time deals on premium furniture at ESSEN Singapore. Seasonal offers, discounts, and special packages available.",
+  alternates: {
+    canonical: "https://essen.sg/promos",
+  },
+  openGraph: {
+    title: "Promotions | Limited Time Furniture Deals at ESSEN",
+    description:
+      "Explore current promotions and limited-time deals on premium furniture at ESSEN Singapore. Seasonal offers, discounts, and special packages available.",
+    url: "https://essen.sg/promos",
+    images: [
+      {
+        url: "/images/essen-promos-og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "ESSEN Singapore Promotions",
+      },
+    ],
+  },
+  twitter: {
+    title: "Promotions | Limited Time Furniture Deals at ESSEN",
+    description:
+      "Explore current promotions and limited-time deals on premium furniture at ESSEN Singapore. Seasonal offers, discounts, and special packages available.",
+    images: ["/images/essen-promos-twitter.jpg"],
+  },
+}
 
 export default function PromosPage() {
   // Current featured promotion (could be fetched from a CMS in a real implementation)

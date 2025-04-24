@@ -1,3 +1,14 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Delivery Policy",
+  description:
+    "Learn about ESSEN Singapore's furniture delivery policy, fees, scheduling, and what to expect when your furniture is delivered.",
+  alternates: {
+    canonical: "https://essen.sg/terms/delivery-information",
+  },
+}
+
 export default function DeliveryInformationPage() {
   return (
     <div>

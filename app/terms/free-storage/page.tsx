@@ -1,3 +1,14 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Free Storage",
+  description:
+    "Details about ESSEN Singapore's free storage policy for purchased furniture, including storage duration and extended storage fees.",
+  alternates: {
+    canonical: "https://essen.sg/terms/free-storage",
+  },
+}
+
 export default function FreeStoragePage() {
   return (
     <div>

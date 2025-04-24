@@ -13,7 +13,7 @@ export function Footer() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
             <div className="space-y-4">
               <TrackClick eventName="logo_click" eventData={{ location: "footer" }}>
-                <div style={{ width: "180px", height: "48px", position: "relative" }}>
+                <div style={{ width: "115px", height: "48px", position: "relative" }}>
                   <Image
                     src="/images/essen-header-logo.png"
                     alt="ESSEN - Your Essential Living Expert"

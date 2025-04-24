@@ -1,3 +1,14 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Return Policy",
+  description:
+    "Read ESSEN Singapore's return policy for furniture purchases. Information on return periods, conditions, and refund processing.",
+  alternates: {
+    canonical: "https://essen.sg/terms/return-policy",
+  },
+}
+
 export default function ReturnPolicyPage() {
   return (
     <div>

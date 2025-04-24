@@ -4,6 +4,36 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CalendarClock, Clock, MapPin } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Special Offers | Exclusive Furniture Deals",
+  description:
+    "Discover exclusive special offers and promotions on premium furniture at ESSEN Singapore. Limited-time deals on living room, dining, and bedroom collections.",
+  alternates: {
+    canonical: "https://essen.sg/special-offers",
+  },
+  openGraph: {
+    title: "Special Offers | Exclusive Furniture Deals at ESSEN",
+    description:
+      "Discover exclusive special offers and promotions on premium furniture at ESSEN Singapore. Limited-time deals on living room, dining, and bedroom collections.",
+    url: "https://essen.sg/special-offers",
+    images: [
+      {
+        url: "/images/essen-offers-og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "ESSEN Singapore Special Offers",
+      },
+    ],
+  },
+  twitter: {
+    title: "Special Offers | Exclusive Furniture Deals at ESSEN",
+    description:
+      "Discover exclusive special offers and promotions on premium furniture at ESSEN Singapore. Limited-time deals on living room, dining, and bedroom collections.",
+    images: ["/images/essen-offers-twitter.jpg"],
+  },
+}
 
 export default function SpecialOffers() {
   const offers = [

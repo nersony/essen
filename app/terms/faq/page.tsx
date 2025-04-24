@@ -1,3 +1,14 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Frequently Asked Questions",
+  description:
+    "Find answers to commonly asked questions about ESSEN furniture, delivery, returns, customization options, and more.",
+  alternates: {
+    canonical: "https://essen.sg/terms/faq",
+  },
+}
+
 export default function FAQPage() {
   return (
     <div>

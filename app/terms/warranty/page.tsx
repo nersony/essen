@@ -1,3 +1,14 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Warranty Policy",
+  description:
+    "Read about ESSEN Singapore's warranty policy for furniture. Details on coverage periods, what's covered, and how to make a warranty claim.",
+  alternates: {
+    canonical: "https://essen.sg/terms/warranty",
+  },
+}
+
 export default function WarrantyPage() {
   return (
     <div>

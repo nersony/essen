@@ -1,3 +1,18 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Terms & Conditions | ESSEN Singapore",
+  description:
+    "Read the terms and conditions for ESSEN furniture store in Singapore. Information about sales, pricing, warranties, and disclaimers.",
+  alternates: {
+    canonical: "https://essen.sg/terms-of-use",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+}
+
 export default function TermsOfUsePage() {
   return (
     <div className="container py-12">

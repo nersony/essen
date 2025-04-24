@@ -2,8 +2,19 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions | ESSEN",
-  description: "Terms, conditions, and policies for ESSEN furniture store",
+  title: {
+    template: "%s | ESSEN Singapore",
+    default: "Terms and Policies | ESSEN Singapore",
+  },
+  description:
+    "Terms, conditions, and policies for ESSEN furniture store in Singapore. Information about warranties, delivery, returns, and more.",
+  alternates: {
+    canonical: "https://essen.sg/terms",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export default function TermsLayout({

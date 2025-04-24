@@ -1,3 +1,14 @@
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Cancellation Policy",
+  description:
+    "Learn about ESSEN Singapore's order cancellation policy, including timeframes, fees, and exceptions for different types of furniture orders.",
+  alternates: {
+    canonical: "https://essen.sg/terms/cancellation-policy",
+  },
+}
+
 export default function CancellationPolicyPage() {
   return (
     <div>
