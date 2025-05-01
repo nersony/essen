@@ -1,77 +1,88 @@
-import { NextResponse } from 'next/server'
-import { v4 as uuidv4 } from 'uuid'
-import { promises as fs } from 'fs'
-import path from 'path'
+import { type NextRequest, NextResponse } from "next/server"
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { v4 as uuidv4 } from "uuid"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { logActivity } from "@/lib/activity-logger"
 
-export async function POST(request: Request) {
+// Configure S3 client for DigitalOcean Spaces
+const s3Client = new S3Client({
+  region: "sgp1", // Singapore region
+  endpoint: "https://sgp1.digitaloceanspaces.com",
+  credentials: {
+    accessKeyId: process.env.DO_SPACES_KEY || "",
+    secretAccessKey: process.env.DO_SPACES_SECRET || "",
+  },
+})
+
+export async function POST(request: NextRequest) {
   try {
-    // Ensure the upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads')
-    await fs.mkdir(uploadDir, { recursive: true })
-
-    // Parse the form data
-    const formData = await request.formData()
-    const image = formData.get('image') as File
-
-    if (!image) {
-      return NextResponse.json(
-        { error: 'No image file provided' }, 
-        { status: 400 }
-      )
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    // Check if user has admin or super_admin role
+    const userRole = session.user.role
+    if (userRole !== "admin" && userRole !== "super_admin" && userRole !== "editor") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    const formData = await request.formData()
+    const file = formData.get("file") as File
+
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    // Get file extension
+    const fileExtension = file.name.split(".").pop()?.toLowerCase()
 
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    if (!validTypes.includes(image.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.' }, 
-        { status: 400 }
-      )
+    const allowedTypes = ["jpg", "jpeg", "png", "gif", "webp"]
+    if (!fileExtension || !allowedTypes.includes(fileExtension)) {
+      return NextResponse.json({ error: "Invalid file type" }, { status: 400 })
     }
 
-    // Validate file size (max 5MB)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-    if (image.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum file size is 5MB.' }, 
-        { status: 400 }
-      )
-    }
+    // Generate unique filename
+    const fileName = `${uuidv4()}.${fileExtension}`
 
-    // Generate a unique filename
-    const fileExtension = path.extname(image.name)
-    const uniqueFileName = `${uuidv4()}${fileExtension}`
-    const filePath = path.join(uploadDir, uniqueFileName)
+    // Set the folder path to 'essen'
+    const folderPath = "essen"
+    const key = `${folderPath}/${fileName}`
 
     // Convert file to buffer
-    const bytes = await image.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
-    // Write file to uploads directory
-    await fs.writeFile(filePath, buffer)
-
-    // Construct the public URL for the uploaded image
-    const imageUrl = `/uploads/${uniqueFileName}`
-
-    return NextResponse.json({ 
-      message: 'Image uploaded successfully', 
-      imageUrl 
-    })
-  } catch (error) {
-    console.error('Image upload error:', error)
-    return NextResponse.json(
-      { 
-        error: 'Failed to upload image', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
-      }, 
-      { status: 500 }
+    // Upload to DigitalOcean Spaces
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: "assets-xyzap",
+        Key: key,
+        Body: buffer,
+        ACL: "public-read",
+        ContentType: file.type,
+      }),
     )
-  }
-}
 
-// Ensure the route can handle larger file uploads
-export const config = {
-  api: {
-    bodyParser: false
+    // Return the URL to the uploaded file
+    const imageUrl = `https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/${key}`
+
+    // Log the activity
+    await logActivity(
+      session.user.id,
+      session.user.email,
+      "create_product", // Using create_product as a general action for uploads
+      `Uploaded image: ${file.name}`,
+      undefined,
+      "image",
+    )
+
+    return NextResponse.json({ imageUrl })
+  } catch (error) {
+    console.error("Error uploading file:", error)
+    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
   }
 }

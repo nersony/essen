@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -14,615 +16,876 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/components/ui/use-toast"
-import type { ProductFormData } from "@/lib/db/schema"
+import type { ProductFormData, ProductVariant } from "@/lib/db/schema"
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions/product-actions"
+import { getCategories } from "@/app/actions/category-actions"
 
 // Define the form schema
 const productFormSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    slug: z
-        .string()
-        .min(1, "Slug is required")
-        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens"),
-    category: z.string().min(1, "Category is required"),
-    price: z.coerce.number().min(0, "Price must be a positive number"),
-    description: z.string().min(1, "Description is required"),
-    features: z.array(z.string()).min(1, "At least one feature is required"),
-    colors: z.array(z.string()),
-    images: z.array(z.string()),
-    dimensions: z
-        .object({
-            width: z.coerce.number().min(0, "Width must be a positive number"),
-            depth: z.coerce.number().min(0, "Depth must be a positive number"),
-            height: z.coerce.number().min(0, "Height must be a positive number"),
-        })
-        .optional(),
-    materials: z.array(z.string()).optional(),
-    careInstructions: z.array(z.string()).optional(),
-    deliveryTime: z.string().optional(),
-    returnPolicy: z.string().optional(),
-    warranty: z.string().optional(),
-    inStock: z.boolean().default(true),
+  name: z.string().min(1, "Name is required"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens"),
+  category: z.string().min(1, "Category is required"),
+  price: z.coerce.number().min(0, "Price must be a positive number"),
+  description: z.string().min(1, "Description is required"),
+  features: z.array(z.string()).min(1, "At least one feature is required"),
+  colors: z.array(z.string()),
+  images: z.array(z.string()),
+  dimensions: z
+    .object({
+      width: z.coerce.number().min(0, "Width must be a positive number"),
+      depth: z.coerce.number().min(0, "Depth must be a positive number"),
+      height: z.coerce.number().min(0, "Height must be a positive number"),
+    })
+    .optional(),
+  materials: z.array(z.string()).optional(),
+  careInstructions: z.array(z.string()).optional(),
+  deliveryTime: z.string().optional(),
+  returnPolicy: z.string().optional(),
+  warranty: z.string().optional(),
+  inStock: z.boolean().default(true),
 })
 
 interface ProductFormProps {
-    initialData?: ProductFormData
-    isEditing?: boolean
+  initialData?: ProductFormData
+  isEditing?: boolean
 }
 
 export function ProductForm({ initialData, isEditing = false }: ProductFormProps) {
-    const router = useRouter()
-    const [isDeleting, setIsDeleting] = useState(false)
-    const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  const [variants, setVariants] = useState<Omit<ProductVariant, "id" | "productId">[]>(
+    initialData?.variants?.map((v) => ({
+      name: v.name,
+      sku: v.sku,
+      price: v.price,
+      attributes: v.attributes,
+      images: v.images || [],
+      inStock: v.inStock,
+    })) || [],
+  )
 
-    // Initialize form with default values or initial data
-    const form = useForm<ProductFormData>({
-        resolver: zodResolver(productFormSchema),
-        defaultValues: initialData || {
-            name: "",
-            slug: "",
-            category: "",
-            price: 0,
-            description: "",
-            features: [""],
-            colors: [""],
-            images: ["/placeholder.svg?height=600&width=600"],
-            dimensions: {
-                width: 0,
-                depth: 0,
-                height: 0,
-            },
-            materials: [""],
-            careInstructions: [""],
-            deliveryTime: "2-3 weeks",
-            returnPolicy: "30-day return policy",
-            warranty: "2-year warranty",
-            inStock: true,
-        },
-    })
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const categoriesData = await getCategories()
+      setCategories(categoriesData.map((c) => ({ id: c.id, name: c.name })))
+    }
 
-    // Handle form submission
-    const onSubmit = async (data: ProductFormData) => {
-        setIsSubmitting(true)
+    fetchCategories()
+  }, [])
 
-        try {
-            if (isEditing && initialData?.id) {
-                // Update existing product
-                const result = await updateProduct(initialData.id, data)
+  const handleVariantChange = (index: number, field: string, value: any) => {
+    const updatedVariants = [...variants]
+    updatedVariants[index] = {
+      ...updatedVariants[index],
+      [field]: value,
+    }
+    setVariants(updatedVariants)
+  }
 
-                if (result.success) {
-                    toast({
-                        title: "Product updated",
-                        description: "Your product has been updated successfully.",
-                    })
-                    router.push("/admin/products")
-                    router.refresh()
-                } else {
-                    toast({
-                        title: "Error",
-                        description: result.message,
-                        variant: "destructive",
-                    })
-                }
-            } else {
-                // Create new product
-                const result = await createProduct(data)
+  const addVariant = () => {
+    setVariants([
+      ...variants,
+      {
+        name: "",
+        sku: "",
+        price: form.getValues("price"),
+        attributes: {},
+        inStock: true,
+      },
+    ])
+  }
 
-                if (result.success) {
-                    toast({
-                        title: "Product created",
-                        description: "Your product has been created successfully.",
-                    })
-                    router.push("/admin/products")
-                    router.refresh()
-                } else {
-                    toast({
-                        title: "Error",
-                        description: result.message,
-                        variant: "destructive",
-                    })
-                }
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "An unexpected error occurred. Please try again.",
-                variant: "destructive",
-            })
-        } finally {
-            setIsSubmitting(false)
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index))
+  }
+
+  // Initialize form with default values or initial data
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: initialData || {
+      name: "",
+      slug: "",
+      category: "",
+      price: 0,
+      description: "",
+      features: [""],
+      colors: [""],
+      images: ["/placeholder.svg?height=600&width=600"],
+      dimensions: {
+        width: 0,
+        depth: 0,
+        height: 0,
+      },
+      materials: [""],
+      careInstructions: [""],
+      deliveryTime: "2-3 weeks",
+      returnPolicy: "30-day return policy",
+      warranty: "2-year warranty",
+      inStock: true,
+    },
+  })
+
+  // Handle form submission
+  const onSubmit = async (data: ProductFormData) => {
+    setIsSubmitting(true)
+
+    try {
+      // Add variants to the form data
+      const formDataWithVariants = {
+        ...data,
+        variants,
+      }
+
+      if (isEditing && initialData?.id) {
+        // Update existing product
+        const result = await updateProduct(initialData.id, formDataWithVariants)
+
+        if (result.success) {
+          toast({
+            title: "Product updated",
+            description: "Your product has been updated successfully.",
+          })
+          router.push("/admin/products")
+          router.refresh()
+        } else {
+          toast({
+            title: "Error",
+            description: result.message,
+            variant: "destructive",
+          })
         }
-    }
+      } else {
+        // Create new product
+        const result = await createProduct(formDataWithVariants)
 
-    // Handle product deletion
-    const handleDelete = async () => {
-        if (!initialData?.id) return
-
-        setIsDeleting(true)
-
-        try {
-            const result = await deleteProduct(initialData.id)
-
-            if (result.success) {
-                toast({
-                    title: "Product deleted",
-                    description: "Your product has been deleted successfully.",
-                })
-                router.push("/admin/products")
-                router.refresh()
-            } else {
-                toast({
-                    title: "Error",
-                    description: result.message,
-                    variant: "destructive",
-                })
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "An unexpected error occurred. Please try again.",
-                variant: "destructive",
-            })
-        } finally {
-            setIsDeleting(false)
+        if (result.success) {
+          toast({
+            title: "Product created",
+            description: "Your product has been created successfully.",
+          })
+          router.push("/admin/products")
+          router.refresh()
+        } else {
+          toast({
+            title: "Error",
+            description: result.message,
+            variant: "destructive",
+          })
         }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
+  }
 
-    // Handle array field additions and removals
-    const addArrayField = (field: keyof ProductFormData, value = "") => {
-        const currentValues = form.getValues(field) as string[]
-        form.setValue(field, [...currentValues, value])
+  // Handle product deletion
+  const handleDelete = async () => {
+    if (!initialData?.id) return
+
+    setIsDeleting(true)
+
+    try {
+      const result = await deleteProduct(initialData.id)
+
+      if (result.success) {
+        toast({
+          title: "Product deleted",
+          description: "Your product has been deleted successfully.",
+        })
+        router.push("/admin/products")
+        router.refresh()
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
+  }
 
-    const removeArrayField = (field: keyof ProductFormData, index: number) => {
-        const currentValues = form.getValues(field) as string[]
-        if (currentValues.length > 1) {
-            form.setValue(
-                field,
-                currentValues.filter((_, i) => i !== index),
-            )
-        }
+  // Handle array field additions and removals
+  const addArrayField = (field: keyof ProductFormData, value = "") => {
+    const currentValues = form.getValues(field) as string[]
+    form.setValue(field, [...currentValues, value])
+  }
+
+  const removeArrayField = (field: keyof ProductFormData, index: number) => {
+    const currentValues = form.getValues(field) as string[]
+    if (currentValues.length > 1) {
+      form.setValue(
+        field,
+        currentValues.filter((_, i) => i !== index),
+      )
     }
-    const handleMultiImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const files = event.target.files
-        if (!files) return
+  }
 
-        // Track upload progress
-        const uploadPromises = Array.from(files).map(async (file) => {
-            try {
-                // Create form data for upload
-                const formData = new FormData()
-                formData.append('image', file)
+  // Handle image upload
+  const handleMultiImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
 
-                // Upload image
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                })
+    setIsUploading(true)
+    const newUploadProgress = { ...uploadProgress }
 
-                if (!response.ok) {
-                    throw new Error('Image upload failed')
-                }
+    // Track upload progress
+    const uploadPromises = Array.from(files).map(async (file, index) => {
+      try {
+        // Create form data for upload
+        const formData = new FormData()
+        formData.append("image", file)
 
-                const { imageUrl } = await response.json()
-                return imageUrl
-            } catch (error) {
-                console.error('Image upload error:', error)
-                toast({
-                    title: "Upload Failed",
-                    description: `Failed to upload ${file.name}`,
-                    variant: "destructive"
-                })
-                return null
-            }
+        // Initialize progress for this file
+        const progressKey = `${Date.now()}-${index}`
+        newUploadProgress[progressKey] = 0
+        setUploadProgress(newUploadProgress)
+
+        // Upload image
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
         })
 
-        try {
-            // Wait for all uploads to complete
-            const uploadedImages = await Promise.all(uploadPromises)
-
-            // Filter out any failed uploads
-            const validImages = uploadedImages.filter(img => img !== null)
-
-            if (validImages.length > 0) {
-                // Get current images and add new ones
-                const currentImages = form.getValues('images')
-                const updatedImages = [...currentImages, ...validImages]
-
-                // Limit to a maximum of 5 images
-                form.setValue('images', updatedImages.slice(0, 5))
-
-                toast({
-                    title: "Images Uploaded",
-                    description: `${validImages.length} image(s) uploaded successfully`,
-                })
-            }
-        } catch (error) {
-            console.error('Multi-image upload error:', error)
-            toast({
-                title: "Upload Error",
-                description: "Failed to process uploaded images",
-                variant: "destructive"
-            })
+        if (!response.ok) {
+          throw new Error("Image upload failed")
         }
+
+        const { imageUrl } = await response.json()
+
+        // Update progress to complete
+        newUploadProgress[progressKey] = 100
+        setUploadProgress(newUploadProgress)
+
+        return imageUrl
+      } catch (error) {
+        console.error("Image upload error:", error)
+        toast({
+          title: "Upload Failed",
+          description: `Failed to upload ${file.name}`,
+          variant: "destructive",
+        })
+        return null
+      }
+    })
+
+    try {
+      // Wait for all uploads to complete
+      const uploadedImages = await Promise.all(uploadPromises)
+
+      // Filter out any failed uploads
+      const validImages = uploadedImages.filter((img) => img !== null)
+
+      if (validImages.length > 0) {
+        // Get current images and add new ones
+        const currentImages = form.getValues("images")
+
+        // Remove placeholder if it's the only image
+        const imagesToUpdate =
+          currentImages.length === 1 && currentImages[0].includes("/placeholder.svg") ? [] : currentImages
+
+        const updatedImages = [...imagesToUpdate, ...validImages]
+
+        form.setValue("images", updatedImages)
+
+        toast({
+          title: "Images Uploaded",
+          description: `${validImages.length} image(s) uploaded successfully`,
+        })
+      }
+    } catch (error) {
+      console.error("Multi-image upload error:", error)
+      toast({
+        title: "Upload Error",
+        description: "Failed to process uploaded images",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUploading(false)
+      setUploadProgress({})
     }
-    return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <Tabs defaultValue="basic">
-                <TabsList className="w-full border-b rounded-none justify-start">
-                    <TabsTrigger value="basic">Basic Information</TabsTrigger>
-                    <TabsTrigger value="details">Details</TabsTrigger>
-                    <TabsTrigger value="images">Images</TabsTrigger>
-                    <TabsTrigger value="shipping">Shipping & Returns</TabsTrigger>
-                </TabsList>
+  }
 
-                {/* Basic Information Tab */}
-                <TabsContent value="basic" className="space-y-6 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Product Name</Label>
-                            <Input id="name" {...form.register("name")} error={form.formState.errors.name?.message} />
-                            {form.formState.errors.name && (
-                                <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
-                            )}
-                        </div>
+  // Generate slug from name
+  const generateSlug = () => {
+    const name = form.getValues("name")
+    if (name) {
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+      form.setValue("slug", slug)
+    }
+  }
 
-                        <div className="space-y-2">
-                            <Label htmlFor="slug">
-                                Slug
-                                <span className="text-xs text-muted-foreground ml-2">(used in URL, e.g., "dining-table")</span>
-                            </Label>
-                            <Input id="slug" {...form.register("slug")} error={form.formState.errors.slug?.message} />
-                            {form.formState.errors.slug && (
-                                <p className="text-sm text-red-500">{form.formState.errors.slug.message}</p>
-                            )}
-                        </div>
-                    </div>
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <Tabs defaultValue="basic">
+        <TabsList className="w-full border-b rounded-none justify-start">
+          <TabsTrigger value="basic">Basic Information</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="variants">Variants</TabsTrigger>
+          <TabsTrigger value="shipping">Shipping & Returns</TabsTrigger>
+        </TabsList>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="category">Category</Label>
-                            <Input id="category" {...form.register("category")} error={form.formState.errors.category?.message} />
-                            {form.formState.errors.category && (
-                                <p className="text-sm text-red-500">{form.formState.errors.category.message}</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="price">Price ($)</Label>
-                            <Input
-                                id="price"
-                                type="number"
-                                step="0.01"
-                                {...form.register("price")}
-                                error={form.formState.errors.price?.message}
-                            />
-                            {form.formState.errors.price && (
-                                <p className="text-sm text-red-500">{form.formState.errors.price.message}</p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                            id="description"
-                            rows={5}
-                            {...form.register("description")}
-                            error={form.formState.errors.description?.message}
-                        />
-                        {form.formState.errors.description && (
-                            <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="inStock">In Stock</Label>
-                            <Switch
-                                id="inStock"
-                                checked={form.watch("inStock")}
-                                onCheckedChange={(checked) => form.setValue("inStock", checked)}
-                            />
-                        </div>
-                    </div>
-                </TabsContent>
-
-                {/* Details Tab */}
-                <TabsContent value="details" className="space-y-6 py-4">
-                    {/* Features */}
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium">Features</h3>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("features")}>
-                                        Add Feature
-                                    </Button>
-                                </div>
-
-                                {form.watch("features").map((feature, index) => (
-                                    <div key={index} className="flex items-center space-x-2">
-                                        <Input
-                                            value={feature}
-                                            onChange={(e) => {
-                                                const newFeatures = [...form.getValues("features")]
-                                                newFeatures[index] = e.target.value
-                                                form.setValue("features", newFeatures)
-                                            }}
-                                            placeholder={`Feature ${index + 1}`}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeArrayField("features", index)}
-                                            disabled={form.watch("features").length <= 1}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                                {form.formState.errors.features && (
-                                    <p className="text-sm text-red-500">{form.formState.errors.features.message}</p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Colors */}
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium">Colors</h3>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("colors")}>
-                                        Add Color
-                                    </Button>
-                                </div>
-
-                                {form.watch("colors").map((color, index) => (
-                                    <div key={index} className="flex items-center space-x-2">
-                                        <Input
-                                            value={color}
-                                            onChange={(e) => {
-                                                const newColors = [...form.getValues("colors")]
-                                                newColors[index] = e.target.value
-                                                form.setValue("colors", newColors)
-                                            }}
-                                            placeholder={`Color ${index + 1}`}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeArrayField("colors", index)}
-                                            disabled={form.watch("colors").length <= 1}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Dimensions */}
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-medium">Dimensions</h3>
-
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="width">Width (cm)</Label>
-                                        <Input
-                                            id="width"
-                                            type="number"
-                                            {...form.register("dimensions.width")}
-                                            error={form.formState.errors.dimensions?.width?.message}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="depth">Depth (cm)</Label>
-                                        <Input
-                                            id="depth"
-                                            type="number"
-                                            {...form.register("dimensions.depth")}
-                                            error={form.formState.errors.dimensions?.depth?.message}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="height">Height (cm)</Label>
-                                        <Input
-                                            id="height"
-                                            type="number"
-                                            {...form.register("dimensions.height")}
-                                            error={form.formState.errors.dimensions?.height?.message}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Materials */}
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium">Materials</h3>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("materials")}>
-                                        Add Material
-                                    </Button>
-                                </div>
-
-                                {form.watch("materials")?.map((material, index) => (
-                                    <div key={index} className="flex items-center space-x-2">
-                                        <Input
-                                            value={material}
-                                            onChange={(e) => {
-                                                const newMaterials = [...(form.getValues("materials") || [])]
-                                                newMaterials[index] = e.target.value
-                                                form.setValue("materials", newMaterials)
-                                            }}
-                                            placeholder={`Material ${index + 1}`}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeArrayField("materials", index)}
-                                            disabled={(form.watch("materials") || []).length <= 1}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Care Instructions */}
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium">Care Instructions</h3>
-                                    <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("careInstructions")}>
-                                        Add Instruction
-                                    </Button>
-                                </div>
-
-                                {form.watch("careInstructions")?.map((instruction, index) => (
-                                    <div key={index} className="flex items-center space-x-2">
-                                        <Input
-                                            value={instruction}
-                                            onChange={(e) => {
-                                                const newInstructions = [...(form.getValues("careInstructions") || [])]
-                                                newInstructions[index] = e.target.value
-                                                form.setValue("careInstructions", newInstructions)
-                                            }}
-                                            placeholder={`Instruction ${index + 1}`}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeArrayField("careInstructions", index)}
-                                            disabled={(form.watch("careInstructions") || []).length <= 1}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Images Tab */}
-                <TabsContent value="images" className="space-y-6 py-4">
-                    <Card>
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium">Product Images</h3>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        className="hidden"
-                                        id="image-upload"
-                                        onChange={handleMultiImageUpload}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => document.getElementById('image-upload')?.click()}
-                                    >
-                                        Upload Images
-                                    </Button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {form.watch("images").map((image, index) => (
-                                        <div key={index} className="relative group">
-                                            <div className="aspect-square relative border rounded-md overflow-hidden">
-                                                <img
-                                                    src={image || "/placeholder.svg"}
-                                                    alt={`Product image ${index + 1}`}
-                                                    className="object-cover w-full h-full"
-                                                />
-                                                {/* Remove Image Button */}
-                                                <Button
-                                                    type="button"
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => {
-                                                        const currentImages = form.getValues('images')
-                                                        const updatedImages = currentImages.filter((_, i) => i !== index)
-                                                        form.setValue('images', updatedImages)
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <p className="text-sm text-muted-foreground">
-                                    Note: In a production environment, you would use an image upload component here. For this example,
-                                    please provide image URLs directly.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Shipping & Returns Tab */}
-                <TabsContent value="shipping" className="space-y-6 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="deliveryTime">Delivery Time</Label>
-                            <Input id="deliveryTime" {...form.register("deliveryTime")} placeholder="e.g., 2-3 weeks" />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="warranty">Warranty</Label>
-                            <Input id="warranty" {...form.register("warranty")} placeholder="e.g., 2-year warranty" />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="returnPolicy">Return Policy</Label>
-                        <Input id="returnPolicy" {...form.register("returnPolicy")} placeholder="e.g., 30-day return policy" />
-                    </div>
-                </TabsContent>
-            </Tabs>
-
-            <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => router.push("/admin/products")}>
-                    Cancel
-                </Button>
-
-                <div className="flex space-x-2">
-                    {isEditing && (
-                        <Button type="button" variant="destructive" onClick={handleDelete} disabled={isDeleting || isSubmitting}>
-                            {isDeleting ? "Deleting..." : "Delete Product"}
-                        </Button>
-                    )}
-
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
-                    </Button>
-                </div>
+        {/* Basic Information Tab */}
+        <TabsContent value="basic" className="space-y-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Product Name</Label>
+              <Input
+                id="name"
+                {...form.register("name")}
+                error={form.formState.errors.name?.message}
+                onBlur={() => {
+                  if (!isEditing && !form.getValues("slug")) {
+                    generateSlug()
+                  }
+                }}
+              />
+              {form.formState.errors.name && (
+                <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+              )}
             </div>
-        </form>
-    )
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="slug">
+                  Slug
+                  <span className="text-xs text-muted-foreground ml-2">(used in URL, e.g., "dining-table")</span>
+                </Label>
+                <Button type="button" variant="outline" size="sm" onClick={generateSlug} className="h-8">
+                  Generate
+                </Button>
+              </div>
+              <Input id="slug" {...form.register("slug")} error={form.formState.errors.slug?.message} />
+              {form.formState.errors.slug && (
+                <p className="text-sm text-red-500">{form.formState.errors.slug.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <select
+                id="category"
+                className="w-full p-2 border rounded-md"
+                {...form.register("category")}
+                onChange={(e) => {
+                  form.setValue("category", e.target.value)
+                  // Find the category ID for the selected category
+                  const selectedCategory = categories.find((c) => c.name === e.target.value)
+                  if (selectedCategory) {
+                    form.setValue("categoryId", selectedCategory.id)
+                  }
+                }}
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              {form.formState.errors.category && (
+                <p className="text-sm text-red-500">{form.formState.errors.category.message}</p>
+              )}
+              <input type="hidden" {...form.register("categoryId")} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="price">Price ($)</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                {...form.register("price")}
+                error={form.formState.errors.price?.message}
+              />
+              {form.formState.errors.price && (
+                <p className="text-sm text-red-500">{form.formState.errors.price.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              rows={5}
+              {...form.register("description")}
+              error={form.formState.errors.description?.message}
+            />
+            {form.formState.errors.description && (
+              <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="inStock">In Stock</Label>
+              <Switch
+                id="inStock"
+                checked={form.watch("inStock")}
+                onCheckedChange={(checked) => form.setValue("inStock", checked)}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Details Tab */}
+        <TabsContent value="details" className="space-y-6 py-4">
+          {/* Features */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Features</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("features")}>
+                    Add Feature
+                  </Button>
+                </div>
+
+                {form.watch("features").map((feature, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={feature}
+                      onChange={(e) => {
+                        const newFeatures = [...form.getValues("features")]
+                        newFeatures[index] = e.target.value
+                        form.setValue("features", newFeatures)
+                      }}
+                      placeholder={`Feature ${index + 1}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeArrayField("features", index)}
+                      disabled={form.watch("features").length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {form.formState.errors.features && (
+                  <p className="text-sm text-red-500">{form.formState.errors.features.message}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Colors */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Colors</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("colors")}>
+                    Add Color
+                  </Button>
+                </div>
+
+                {form.watch("colors").map((color, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={color}
+                      onChange={(e) => {
+                        const newColors = [...form.getValues("colors")]
+                        newColors[index] = e.target.value
+                        form.setValue("colors", newColors)
+                      }}
+                      placeholder={`Color ${index + 1}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeArrayField("colors", index)}
+                      disabled={form.watch("colors").length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Dimensions */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Dimensions</h3>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="width">Width (cm)</Label>
+                    <Input
+                      id="width"
+                      type="number"
+                      {...form.register("dimensions.width")}
+                      error={form.formState.errors.dimensions?.width?.message}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="depth">Depth (cm)</Label>
+                    <Input
+                      id="depth"
+                      type="number"
+                      {...form.register("dimensions.depth")}
+                      error={form.formState.errors.dimensions?.depth?.message}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="height">Height (cm)</Label>
+                    <Input
+                      id="height"
+                      type="number"
+                      {...form.register("dimensions.height")}
+                      error={form.formState.errors.dimensions?.height?.message}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Materials */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Materials</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("materials")}>
+                    Add Material
+                  </Button>
+                </div>
+
+                {form.watch("materials")?.map((material, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={material}
+                      onChange={(e) => {
+                        const newMaterials = [...(form.getValues("materials") || [])]
+                        newMaterials[index] = e.target.value
+                        form.setValue("materials", newMaterials)
+                      }}
+                      placeholder={`Material ${index + 1}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeArrayField("materials", index)}
+                      disabled={(form.watch("materials") || []).length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Care Instructions */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Care Instructions</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("careInstructions")}>
+                    Add Instruction
+                  </Button>
+                </div>
+
+                {form.watch("careInstructions")?.map((instruction, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={instruction}
+                      onChange={(e) => {
+                        const newInstructions = [...(form.getValues("careInstructions") || [])]
+                        newInstructions[index] = e.target.value
+                        form.setValue("careInstructions", newInstructions)
+                      }}
+                      placeholder={`Instruction ${index + 1}`}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeArrayField("careInstructions", index)}
+                      disabled={(form.watch("careInstructions") || []).length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Images Tab */}
+        <TabsContent value="images" className="space-y-6 py-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Product Images</h3>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    id="image-upload"
+                    onChange={handleMultiImageUpload}
+                    disabled={isUploading}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById("image-upload")?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? "Uploading..." : "Upload Images"}
+                  </Button>
+                </div>
+
+                {/* Upload Progress */}
+                {isUploading && Object.keys(uploadProgress).length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {Object.entries(uploadProgress).map(([key, progress]) => (
+                      <div key={key} className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div className="bg-primary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {form.watch("images").map((image, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-square relative border rounded-md overflow-hidden">
+                        <img
+                          src={image || "/placeholder.svg"}
+                          alt={`Product image ${index + 1}`}
+                          className="object-cover w-full h-full"
+                        />
+                        {/* Remove Image Button */}
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => {
+                            const currentImages = form.getValues("images")
+                            const updatedImages = currentImages.filter((_, i) => i !== index)
+                            form.setValue(
+                              "images",
+                              updatedImages.length > 0 ? updatedImages : ["/placeholder.svg?height=600&width=600"],
+                            )
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {/* Image URL display */}
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                        {image.includes("digitaloceanspaces.com/essen")
+                          ? `DO Spaces: ${image.split("/essen/").pop()}`
+                          : image.includes("digitaloceanspaces.com")
+                            ? `DO Spaces: ${image.split("/").pop()}`
+                            : image}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Images are automatically uploaded to DigitalOcean Spaces. For best results, use images with a 1:1
+                  aspect ratio.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="variants" className="space-y-6 py-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Product Variants</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={addVariant}>
+                    Add Variant
+                  </Button>
+                </div>
+
+                {variants.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No variants added. Add variants to offer different options like colors or sizes.
+                  </p>
+                ) : (
+                  variants.map((variant, index) => (
+                    <div key={index} className="border p-4 rounded-md space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium">Variant {index + 1}</h4>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`variant-name-${index}`}>Variant Name</Label>
+                          <Input
+                            id={`variant-name-${index}`}
+                            value={variant.name}
+                            onChange={(e) => handleVariantChange(index, "name", e.target.value)}
+                            placeholder="e.g., Blue Large"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor={`variant-sku-${index}`}>SKU</Label>
+                          <Input
+                            id={`variant-sku-${index}`}
+                            value={variant.sku}
+                            onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
+                            placeholder="e.g., PROD-BLU-L"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor={`variant-price-${index}`}>Price</Label>
+                          <Input
+                            id={`variant-price-${index}`}
+                            type="number"
+                            step="0.01"
+                            value={variant.price}
+                            onChange={(e) => handleVariantChange(index, "price", Number.parseFloat(e.target.value))}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>In Stock</Label>
+                          <div className="pt-2">
+                            <Switch
+                              checked={variant.inStock}
+                              onCheckedChange={(checked) => handleVariantChange(index, "inStock", checked)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Attributes</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Attribute name (e.g., Color)"
+                              value={Object.keys(variant.attributes)[0] || ""}
+                              onChange={(e) => {
+                                const oldKey = Object.keys(variant.attributes)[0]
+                                const oldValue = oldKey ? variant.attributes[oldKey] : ""
+                                const newAttributes = {}
+                                if (e.target.value) {
+                                  newAttributes[e.target.value] = oldValue
+                                }
+                                handleVariantChange(index, "attributes", newAttributes)
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Value (e.g., Blue)"
+                              value={Object.values(variant.attributes)[0] || ""}
+                              onChange={(e) => {
+                                const key = Object.keys(variant.attributes)[0]
+                                if (key) {
+                                  const newAttributes = { ...variant.attributes }
+                                  newAttributes[key] = e.target.value
+                                  handleVariantChange(index, "attributes", newAttributes)
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Shipping & Returns Tab */}
+        <TabsContent value="shipping" className="space-y-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="deliveryTime">Delivery Time</Label>
+              <Input id="deliveryTime" {...form.register("deliveryTime")} placeholder="e.g., 2-3 weeks" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="warranty">Warranty</Label>
+              <Input id="warranty" {...form.register("warranty")} placeholder="e.g., 2-year warranty" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="returnPolicy">Return Policy</Label>
+            <Input id="returnPolicy" {...form.register("returnPolicy")} placeholder="e.g., 30-day return policy" />
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex justify-between">
+        <Button type="button" variant="outline" onClick={() => router.push("/admin/products")}>
+          Cancel
+        </Button>
+
+        <div className="flex space-x-2">
+          {isEditing && (
+            <Button type="button" variant="destructive" onClick={handleDelete} disabled={isDeleting || isSubmitting}>
+              {isDeleting ? "Deleting..." : "Delete Product"}
+            </Button>
+          )}
+
+          <Button type="submit" disabled={isSubmitting || isUploading}>
+            {isSubmitting ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
+          </Button>
+        </div>
+      </div>
+    </form>
+  )
 }

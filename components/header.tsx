@@ -7,13 +7,10 @@ import { Button } from "@/components/ui/button"
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from "@/components/ui/navigation-menu"
 import { Menu, Phone } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { CartIcon } from "@/components/cart/cart-icon"
-import { CartDrawer } from "@/components/cart/cart-drawer"
 
 export function Header() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const [cartOpen, setCartOpen] = useState(false)
 
   return (
     <>
@@ -76,7 +73,6 @@ export function Header() {
           </div>
           <div className="flex items-center gap-4">
             {/* Cart Icon */}
-            <CartIcon onClick={() => setCartOpen(true)} />
 
             <Link
               href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20like%20to%20claim%20my%20In-Store%20Offer!"
@@ -128,7 +124,6 @@ export function Header() {
       </header>
 
       {/* Cart Drawer */}
-      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
     </>
   )
 }

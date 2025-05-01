@@ -3,7 +3,18 @@ import type React from "react"
 import Link from "next/link"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { Package, ShoppingBag, Settings, Home, LogOut } from "lucide-react"
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Settings,
+  Home,
+  LogOut,
+  Users,
+  Activity,
+  Package,
+  FolderTree,
+} from "lucide-react"
+import { redirect } from "next/navigation"
 
 export default async function AdminLayout({
   children,
@@ -13,35 +24,75 @@ export default async function AdminLayout({
   // Get session for display purposes only, don't redirect
   const session = await getServerSession(authOptions)
 
+  // If not logged in, redirect to login
+  if (!session || !session.user) {
+    redirect("/admin/login")
+  }
+
+  // Check if user is super admin
+  const isSuperAdmin = session.user.role === "super_admin"
+  const isAdmin = session.user.role === "admin" || isSuperAdmin
+
+  // If not admin or super admin, redirect to home
+  if (!isAdmin) {
+    redirect("/")
+  }
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <div className="w-64 bg-secondary p-6 hidden md:block">
         <div className="mb-8">
           <h1 className="text-xl font-bold">ESSEN Admin</h1>
+          <p className="text-sm text-muted-foreground mt-1">Logged in as {session.user.name}</p>
         </div>
         <nav className="space-y-2">
           <Link
             href="/admin"
             className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            <Home className="mr-2 h-4 w-4" />
+            <LayoutDashboard className="mr-2 h-4 w-4" />
             Dashboard
           </Link>
           <Link
             href="/admin/products"
             className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            <Package className="mr-2 h-4 w-4" />
+            <ShoppingBag className="mr-2 h-4 w-4" />
             Products
+          </Link>
+          <Link
+            href="/admin/categories"
+            className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <FolderTree className="mr-2 h-4 w-4" />
+            Categories
           </Link>
           <Link
             href="/admin/orders"
             className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            <ShoppingBag className="mr-2 h-4 w-4" />
+            <Package className="mr-2 h-4 w-4" />
             Orders
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin/users"
+              className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Users
+            </Link>
+          )}
+          {isSuperAdmin && (
+            <Link
+              href="/admin/logs"
+              className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <Activity className="mr-2 h-4 w-4" />
+              Activity Logs
+            </Link>
+          )}
           <Link
             href="/admin/settings"
             className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
@@ -71,7 +122,7 @@ export default async function AdminLayout({
           <div className="flex justify-between items-center">
             <h1 className="text-xl font-bold md:hidden">ESSEN Admin</h1>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">{session?.user?.email || "Admin User"}</span>
+              <span className="text-sm text-muted-foreground">{session.user.email}</span>
               <Link href="/api/auth/signout" className="text-sm text-primary hover:text-primary/80">
                 Sign Out
               </Link>

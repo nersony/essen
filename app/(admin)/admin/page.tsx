@@ -1,18 +1,28 @@
 import Link from "next/link"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 import { getProducts } from "@/app/actions/product-actions"
+import { getUsers } from "@/lib/user-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Package, ShoppingBag, Users, DollarSign } from "lucide-react"
 
 export default async function AdminDashboard() {
+  // Get the current user session
+  const session = await getServerSession(authOptions)
+
   const products = await getProducts()
+  const users = session?.user?.role === "super_admin" ? await getUsers() : []
 
   // In a real app, you would fetch this data from your database
   const stats = {
     totalProducts: products.length,
+    totalUsers: users.length,
     totalOrders: 0,
-    totalCustomers: 0,
     totalRevenue: 0,
   }
+
+  // Check if user is super admin
+  const isSuperAdmin = session?.user?.role === "super_admin"
 
   return (
     <div>
@@ -32,6 +42,21 @@ export default async function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {isSuperAdmin && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.totalUsers > 0 ? `${stats.totalUsers} active users` : "No users yet"}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
@@ -40,17 +65,6 @@ export default async function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalOrders}</div>
             <p className="text-xs text-muted-foreground">No orders yet</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-            <p className="text-xs text-muted-foreground">No customers yet</p>
           </CardContent>
         </Card>
 
@@ -117,15 +131,19 @@ export default async function AdminDashboard() {
             <p className="text-sm text-muted-foreground">Create a new product listing</p>
           </Link>
 
-          <Link href="/admin/categories" className="border rounded-md p-4 hover:bg-secondary transition-colors">
-            <h3 className="font-medium">Manage Categories</h3>
-            <p className="text-sm text-muted-foreground">Add or edit product categories</p>
-          </Link>
+          {isSuperAdmin && (
+            <Link href="/admin/users/new" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+              <h3 className="font-medium">Add New User</h3>
+              <p className="text-sm text-muted-foreground">Create a new admin user</p>
+            </Link>
+          )}
 
-          <Link href="/admin/orders" className="border rounded-md p-4 hover:bg-secondary transition-colors">
-            <h3 className="font-medium">View Orders</h3>
-            <p className="text-sm text-muted-foreground">Check recent customer orders</p>
-          </Link>
+          {isSuperAdmin && (
+            <Link href="/admin/logs" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+              <h3 className="font-medium">View Activity Logs</h3>
+              <p className="text-sm text-muted-foreground">Monitor admin activity</p>
+            </Link>
+          )}
 
           <Link href="/admin/settings" className="border rounded-md p-4 hover:bg-secondary transition-colors">
             <h3 className="font-medium">Settings</h3>

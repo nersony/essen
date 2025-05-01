@@ -3,6 +3,9 @@ import { getProducts } from "@/app/actions/product-actions"
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
 
+// Import the image utility at the top of the file
+import { ensureCorrectImagePath } from "@/lib/image-utils"
+
 export default async function AdminProductsPage() {
   const products = await getProducts()
 
@@ -32,8 +35,9 @@ export default async function AdminProductsPage() {
           {products.map((product) => (
             <div key={product.id} className="grid grid-cols-6 gap-4 p-4 items-center border-b last:border-0">
               <div className="w-12 h-12 relative rounded overflow-hidden">
+                {/* Update the image source in the product list */}
                 <img
-                  src={product.images[0] || "/placeholder.svg?height=48&width=48"}
+                  src={ensureCorrectImagePath(product.images[0] || "/placeholder.svg?height=48&width=48")}
                   alt={product.name}
                   className="object-cover w-full h-full"
                 />

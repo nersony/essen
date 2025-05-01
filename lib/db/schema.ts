@@ -3,6 +3,7 @@ export type Product = {
   name: string
   slug: string
   category: string
+  categoryId: string // Reference to the category
   price: number
   description: string
   features: string[]
@@ -19,34 +20,88 @@ export type Product = {
   returnPolicy?: string
   warranty?: string
   inStock: boolean
+  variants?: ProductVariant[]
+  attributes?: Record<string, string[]> // Flexible attributes for filtering
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type ProductVariant = {
+  id: string
+  productId: string
+  name: string
+  sku: string
+  price: number
+  attributes: Record<string, string> // e.g., {"color": "blue", "size": "large"}
+  images?: string[]
+  inStock: boolean
+}
+
+export type Category = {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  parentId?: string // For hierarchical categories
+  image?: string
+  order: number
   createdAt: Date
   updatedAt: Date
 }
 
 export type ProductFormData = Omit<Product, "id" | "createdAt" | "updatedAt"> & {
   id?: string
+  variants?: Omit<ProductVariant, "id" | "productId">[]
 }
+
+export type CategoryFormData = Omit<Category, "id" | "createdAt" | "updatedAt"> & {
+  id?: string
+}
+
+export type UserRole = "super_admin" | "admin" | "editor" | "customer"
 
 export type User = {
   id: string
   name: string
   email: string
   password: string
-  role: "admin" | "editor" | "customer"
+  role: UserRole
   createdAt: Date
   updatedAt: Date
+  lastLogin?: Date
+}
+
+export type ActivityLogAction =
+  | "login"
+  | "logout"
+  | "create_product"
+  | "update_product"
+  | "delete_product"
+  | "create_user"
+  | "update_user"
+  | "delete_user"
+  | "view_logs"
+  | "view_users"
+  | "view_products"
+  | "create_category"
+  | "update_category"
+  | "delete_category"
+
+export type ActivityLog = {
+  id: string
+  userId: string
+  userEmail: string
+  action: ActivityLogAction
+  details: string
+  ipAddress?: string
+  userAgent?: string
+  timestamp: Date
+  entityId?: string // ID of the entity being acted upon (product, user, etc.)
+  entityType?: string // Type of entity (product, user, etc.)
 }
 
 // New types for orders
-export type OrderStatus =
-  | "pending"
-  | "payment_initiated"
-  | "paid"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "refunded"
+export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled"
 
 export type OrderItem = {
   productId: string
@@ -55,6 +110,9 @@ export type OrderItem = {
   price: number
   quantity: number
   image?: string
+  variantId?: string
+  variantName?: string
+  variantAttributes?: Record<string, string>
 }
 
 export type ShippingAddress = {
@@ -80,8 +138,6 @@ export type Order = {
   tax: number
   total: number
   status: OrderStatus
-  paymentId?: string
-  paymentProvider: "hitpay" | "cash" | "bank_transfer"
   referenceNumber: string
   notes?: string
   trackingNumber?: string
