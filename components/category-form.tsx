@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
-import type { CategoryFormData } from "@/lib/db/schema"
 import { createCategory, updateCategory, deleteCategory } from "@/app/actions/category-actions"
 
 // Define the form schema
@@ -21,11 +19,16 @@ const categoryFormSchema = z.object({
     .string()
     .min(1, "Slug is required")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens"),
-  description: z.string().optional(),
-  parentId: z.string().optional(),
-  image: z.string().optional(),
-  order: z.number().int().default(0),
+  parentId: z.string().optional().nullable(),
 })
+
+// Define the CategoryFormData type
+interface CategoryFormData {
+  name: string
+  slug: string
+  parentId?: string | null
+  id?: string
+}
 
 interface CategoryFormProps {
   initialData?: CategoryFormData
@@ -36,28 +39,38 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  // Debug log for initial data
+  useEffect(() => {
+    console.log("CategoryForm initialData:", initialData)
+  }, [initialData])
 
   // Initialize form with default values or initial data
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categoryFormSchema),
-    defaultValues: initialData || {
-      name: "",
-      slug: "",
-      description: "",
-      parentId: "",
-      image: "",
-      order: 0,
+    defaultValues: {
+      name: initialData?.name || "",
+      slug: initialData?.slug || "",
+      parentId: initialData?.parentId || "",
     },
   })
 
   // Handle form submission
   const onSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true)
+    setFormError(null)
 
     try {
+      console.log("Form submission data:", data)
+      console.log("Is editing:", isEditing)
+      console.log("Initial data ID:", initialData?.id)
+
       if (isEditing && initialData?.id) {
         // Update existing category
+        console.log(`Updating category with ID: ${initialData.id}`)
         const result = await updateCategory(initialData.id, data)
+        console.log("Update result:", result)
 
         if (result.success) {
           toast({
@@ -67,6 +80,7 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
           router.push("/admin/categories")
           router.refresh()
         } else {
+          setFormError(result.message)
           toast({
             title: "Error",
             description: result.message,
@@ -75,7 +89,9 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
         }
       } else {
         // Create new category
+        console.log("Creating new category")
         const result = await createCategory(data)
+        console.log("Create result:", result)
 
         if (result.success) {
           toast({
@@ -85,6 +101,7 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
           router.push("/admin/categories")
           router.refresh()
         } else {
+          setFormError(result.message)
           toast({
             title: "Error",
             description: result.message,
@@ -93,6 +110,8 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
         }
       }
     } catch (error) {
+      console.error("Form submission error:", error)
+      setFormError("An unexpected error occurred. Please try again.")
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -110,7 +129,9 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
     setIsDeleting(true)
 
     try {
+      console.log(`Deleting category with ID: ${initialData.id}`)
       const result = await deleteCategory(initialData.id)
+      console.log("Delete result:", result)
 
       if (result.success) {
         toast({
@@ -127,6 +148,7 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
         })
       }
     } catch (error) {
+      console.error("Delete error:", error)
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -151,6 +173,13 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      {formError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{formError}</span>
+        </div>
+      )}
+
       <Card>
         <CardContent className="pt-6">
           <div className="space-y-6">
@@ -184,27 +213,6 @@ export function CategoryForm({ initialData, isEditing = false }: CategoryFormPro
               <Input id="slug" {...form.register("slug")} error={form.formState.errors.slug?.message} />
               {form.formState.errors.slug && (
                 <p className="text-sm text-red-500">{form.formState.errors.slug.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                rows={3}
-                {...form.register("description")}
-                error={form.formState.errors.description?.message}
-              />
-              {form.formState.errors.description && (
-                <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="image">Image URL (Optional)</Label>
-              <Input id="image" {...form.register("image")} error={form.formState.errors.image?.message} />
-              {form.formState.errors.image && (
-                <p className="text-sm text-red-500">{form.formState.errors.image.message}</p>
               )}
             </div>
           </div>

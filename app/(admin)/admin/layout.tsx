@@ -21,10 +21,11 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Get session for display purposes only, don't redirect
+  // Get session for display purposes
   const session = await getServerSession(authOptions)
 
-  // If not logged in, redirect to login
+  // This check is now redundant with the middleware, but keeping it as a fallback
+  // The middleware should have already redirected unauthenticated users
   if (!session || !session.user) {
     redirect("/admin/login")
   }
@@ -33,7 +34,7 @@ export default async function AdminLayout({
   const isSuperAdmin = session.user.role === "super_admin"
   const isAdmin = session.user.role === "admin" || isSuperAdmin
 
-  // If not admin or super admin, redirect to home
+  // This check is also redundant with the middleware, but keeping as a fallback
   if (!isAdmin) {
     redirect("/")
   }
@@ -68,13 +69,13 @@ export default async function AdminLayout({
             <FolderTree className="mr-2 h-4 w-4" />
             Categories
           </Link>
-          <Link
+          {/* <Link
             href="/admin/orders"
             className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
             <Package className="mr-2 h-4 w-4" />
             Orders
-          </Link>
+          </Link> */}
           {isAdmin && (
             <Link
               href="/admin/users"
@@ -93,15 +94,15 @@ export default async function AdminLayout({
               Activity Logs
             </Link>
           )}
-          <Link
+          {/* <Link
             href="/admin/settings"
             className="flex items-center px-4 py-2 rounded-md hover:bg-primary hover:text-primary-foreground transition-colors"
           >
             <Settings className="mr-2 h-4 w-4" />
             Settings
-          </Link>
+          </Link> */}
         </nav>
-        <div className="mt-auto pt-6 border-t mt-8">
+        {/* <div className="mt-auto pt-6 border-t mt-8">
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground flex items-center">
             <Home className="mr-2 h-4 w-4" />
             Back to Website
@@ -113,7 +114,7 @@ export default async function AdminLayout({
             <LogOut className="mr-2 h-4 w-4" />
             Sign Out
           </Link>
-        </div>
+        </div> */}
       </div>
 
       {/* Main Content */}

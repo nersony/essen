@@ -1,8 +1,10 @@
 // app/admin/login/page.tsx
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { signIn, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,18 +14,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default function LoginPage() {
   const router = useRouter()
   const { data: session, status } = useSession()
-  
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams?.get("callbackUrl") || "/admin"
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  // If already authenticated, redirect to admin dashboard
+  // If already authenticated, redirect to admin dashboard or callback URL
   useEffect(() => {
     if (status === "authenticated" && session) {
-      router.push("/admin")
+      router.push(callbackUrl)
     }
-  }, [session, status, router])
+  }, [session, status, router, callbackUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,6 +39,7 @@ export default function LoginPage() {
         email,
         password,
         redirect: false,
+        callbackUrl,
       })
 
       if (result?.error) {

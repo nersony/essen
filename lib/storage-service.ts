@@ -14,6 +14,67 @@ const s3Client = new S3Client({
 const BUCKET_NAME = "assets-xyzap"
 const CDN_ENDPOINT = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com"
 
+// Check if an image URL is from DigitalOcean Spaces
+export function isDigitalOceanImage(url: string): boolean {
+  return url && typeof url === "string" && url.includes(CDN_ENDPOINT)
+}
+
+// Validate image URLs
+export async function validateImageUrls(urls: string[]): Promise<{ valid: boolean; message?: string }> {
+  try {
+    if (!urls || urls.length === 0) {
+      return { valid: false, message: "No image URLs provided" }
+    }
+
+    // Filter out empty URLs
+    const filteredUrls = urls.filter((url) => url && url.trim() !== "")
+
+    if (filteredUrls.length === 0) {
+      return { valid: false, message: "No valid image URLs provided" }
+    }
+
+    // Check each URL
+    for (const url of filteredUrls) {
+      if (!validateImageUrl(url)) {
+        return {
+          valid: false,
+          message: `Invalid image URL: ${url}. URLs must be local paths or from approved domains.`,
+        }
+      }
+    }
+
+    return { valid: true }
+  } catch (error) {
+    console.error("Error validating image URLs:", error)
+    return { valid: false, message: "Error validating image URLs" }
+  }
+}
+
+// Helper function to validate a single image URL
+function validateImageUrl(url: string): boolean {
+  try {
+    // Basic URL validation
+    if (!url) return false
+
+    // Check if it's a local upload, DigitalOcean CDN, or an external URL
+    const isLocalUpload =
+      url.startsWith("/uploads/") ||
+      url.startsWith("/images/") ||
+      url.startsWith("uploads/") ||
+      url.startsWith("images/")
+
+    const isDigitalOceanCDN =
+      url.includes("assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen") ||
+      url.includes("assets-xyzap.sgp1.cdn.digitaloceanspaces.com")
+
+    const isExternalUrl = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+
+    return isLocalUpload || isDigitalOceanCDN || isExternalUrl
+  } catch {
+    return false
+  }
+}
+
 // Upload a file to DigitalOcean Spaces
 export async function uploadFile(file: Buffer, fileName: string, contentType: string): Promise<string> {
   try {
@@ -21,7 +82,7 @@ export async function uploadFile(file: Buffer, fileName: string, contentType: st
     const uniqueFileName = `${Date.now()}-${uuidv4()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`
 
     // Define the path in the bucket
-    const filePath = `products/${uniqueFileName}`
+    const filePath = `essen/products/${uniqueFileName}`
 
     // Upload the file
     await s3Client.send(
@@ -45,8 +106,16 @@ export async function uploadFile(file: Buffer, fileName: string, contentType: st
 // Delete a file from DigitalOcean Spaces
 export async function deleteFile(fileUrl: string): Promise<boolean> {
   try {
+    // Check if the URL is from DigitalOcean Spaces
+    if (!isDigitalOceanImage(fileUrl)) {
+      console.log(`Skipping deletion of non-DigitalOcean image: ${fileUrl}`)
+      return true // Not a failure, just not applicable
+    }
+
     // Extract the file path from the CDN URL
     const filePath = fileUrl.replace(`${CDN_ENDPOINT}/`, "")
+
+    console.log(`Deleting file from DigitalOcean Spaces: ${filePath}`)
 
     // Delete the file
     await s3Client.send(
@@ -56,11 +125,59 @@ export async function deleteFile(fileUrl: string): Promise<boolean> {
       }),
     )
 
+    console.log(`Successfully deleted file: ${filePath}`)
     return true
   } catch (error) {
     console.error("Failed to delete file from DigitalOcean Spaces:", error)
     return false
   }
+}
+
+// Delete multiple files from DigitalOcean Spaces
+export async function deleteMultipleFiles(fileUrls: string[]): Promise<{
+  success: boolean
+  deletedCount: number
+  failedCount: number
+  failedUrls: string[]
+}> {
+  const results = {
+    success: true,
+    deletedCount: 0,
+    failedCount: 0,
+    failedUrls: [] as string[],
+  }
+
+  if (!fileUrls || fileUrls.length === 0) {
+    return results
+  }
+
+  // Filter out only DigitalOcean images
+  const doImages = fileUrls.filter((url) => isDigitalOceanImage(url))
+
+  console.log(`Attempting to delete ${doImages.length} images from DigitalOcean Spaces`)
+
+  for (const url of doImages) {
+    try {
+      const deleted = await deleteFile(url)
+      if (deleted) {
+        results.deletedCount++
+      } else {
+        results.failedCount++
+        results.failedUrls.push(url)
+      }
+    } catch (error) {
+      console.error(`Error deleting file ${url}:`, error)
+      results.failedCount++
+      results.failedUrls.push(url)
+    }
+  }
+
+  // If any deletions failed, mark the overall operation as failed
+  if (results.failedCount > 0) {
+    results.success = false
+  }
+
+  return results
 }
 
 // Update the uploadImage function to use the new path

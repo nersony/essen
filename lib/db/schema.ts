@@ -4,17 +4,10 @@ export type Product = {
   slug: string
   category: string
   categoryId: string // Reference to the category
-  price: number
+  price: number // Base price
   description: string
   features: string[]
-  colors: string[]
   images: string[]
-  dimensions?: {
-    width: number
-    depth: number
-    height: number
-  }
-  materials?: string[]
   careInstructions?: string[]
   deliveryTime?: string
   returnPolicy?: string
@@ -26,36 +19,62 @@ export type Product = {
   updatedAt: Date
 }
 
+// Update the MaterialOption type
+export type MaterialOption = {
+  name: string
+  description?: string
+  image?: string
+}
+
+// Update the DimensionOption type
+export type DimensionOption = {
+  value: string
+  description?: string
+}
+
+// Add a new type for material-dimension combinations
+export type VariantCombination = {
+  materialName: string
+  dimensionValue: string
+  price: number
+  inStock: boolean
+  sku?: string
+  image?: string
+}
+
+export type AddOnOption = {
+  id: string
+  name: string
+  description?: string
+  price: number
+}
+
+// Update the ProductVariant type
 export type ProductVariant = {
   id: string
   productId: string
-  name: string
-  sku: string
-  price: number
-  attributes: Record<string, string> // e.g., {"color": "blue", "size": "large"}
-  images?: string[]
-  inStock: boolean
+  materials: MaterialOption[] // Available materials
+  dimensions: DimensionOption[] // Available dimensions
+  combinations: VariantCombination[] // Price and stock for each material-dimension combination
+  addOns: AddOnOption[] // Available add-ons
 }
 
 export type Category = {
   id: string
   name: string
   slug: string
-  description?: string
   parentId?: string // For hierarchical categories
-  image?: string
-  order: number
   createdAt: Date
   updatedAt: Date
+}
+
+export type CategoryFormData = Omit<Category, "id" | "createdAt" | "updatedAt"> & {
+  id?: string
 }
 
 export type ProductFormData = Omit<Product, "id" | "createdAt" | "updatedAt"> & {
   id?: string
   variants?: Omit<ProductVariant, "id" | "productId">[]
-}
-
-export type CategoryFormData = Omit<Category, "id" | "createdAt" | "updatedAt"> & {
-  id?: string
 }
 
 export type UserRole = "super_admin" | "admin" | "editor" | "customer"
@@ -113,6 +132,9 @@ export type OrderItem = {
   variantId?: string
   variantName?: string
   variantAttributes?: Record<string, string>
+  selectedMaterial?: string
+  selectedDimension?: string
+  selectedAddOns?: AddOnOption[] // Include selected add-ons
 }
 
 export type ShippingAddress = {

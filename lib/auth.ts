@@ -35,8 +35,8 @@ export const authOptions: NextAuthOptions = {
         // Update last login time
         await updateLastLogin(user.id)
 
-        // Log the login activity
-        await logActivity(user.id, user.email, "login", `User logged in: ${user.email}`, user.id, "user")
+        // Log the login activity - pass user role to skip logging for superadmins
+        await logActivity(user.id, user.email, "login", `User logged in: ${user.email}`, user.id, "user", user.role)
 
         return {
           id: user.id,

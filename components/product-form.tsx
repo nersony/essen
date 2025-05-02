@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { Trash2 } from "lucide-react"
+import { Trash2, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,8 +15,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
-import type { ProductFormData, ProductVariant } from "@/lib/db/schema"
+import type { ProductFormData, ProductVariant, MaterialOption, DimensionOption, AddOnOption } from "@/lib/db/schema"
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions/product-actions"
 import { getCategories } from "@/app/actions/category-actions"
 
@@ -31,16 +32,7 @@ const productFormSchema = z.object({
   price: z.coerce.number().min(0, "Price must be a positive number"),
   description: z.string().min(1, "Description is required"),
   features: z.array(z.string()).min(1, "At least one feature is required"),
-  colors: z.array(z.string()),
   images: z.array(z.string()),
-  dimensions: z
-    .object({
-      width: z.coerce.number().min(0, "Width must be a positive number"),
-      depth: z.coerce.number().min(0, "Depth must be a positive number"),
-      height: z.coerce.number().min(0, "Height must be a positive number"),
-    })
-    .optional(),
-  materials: z.array(z.string()).optional(),
   careInstructions: z.array(z.string()).optional(),
   deliveryTime: z.string().optional(),
   returnPolicy: z.string().optional(),
@@ -53,6 +45,16 @@ interface ProductFormProps {
   isEditing?: boolean
 }
 
+// Helper function to safely handle potentially null values
+const safeValue = (value: any) => {
+  return value === null ? "" : value
+}
+
+// SafeInput component that handles null values
+const SafeInput = ({ value, ...props }: any) => {
+  return <Input value={safeValue(value)} {...props} />
+}
+
 export function ProductForm({ initialData, isEditing = false }: ProductFormProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -60,51 +62,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
-  const [variants, setVariants] = useState<Omit<ProductVariant, "id" | "productId">[]>(
-    initialData?.variants?.map((v) => ({
-      name: v.name,
-      sku: v.sku,
-      price: v.price,
-      attributes: v.attributes,
-      images: v.images || [],
-      inStock: v.inStock,
-    })) || [],
-  )
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      const categoriesData = await getCategories()
-      setCategories(categoriesData.map((c) => ({ id: c.id, name: c.name })))
-    }
-
-    fetchCategories()
-  }, [])
-
-  const handleVariantChange = (index: number, field: string, value: any) => {
-    const updatedVariants = [...variants]
-    updatedVariants[index] = {
-      ...updatedVariants[index],
-      [field]: value,
-    }
-    setVariants(updatedVariants)
-  }
-
-  const addVariant = () => {
-    setVariants([
-      ...variants,
-      {
-        name: "",
-        sku: "",
-        price: form.getValues("price"),
-        attributes: {},
-        inStock: true,
-      },
-    ])
-  }
-
-  const removeVariant = (index: number) => {
-    setVariants(variants.filter((_, i) => i !== index))
-  }
 
   // Initialize form with default values or initial data
   const form = useForm<ProductFormData>({
@@ -116,14 +73,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       price: 0,
       description: "",
       features: [""],
-      colors: [""],
       images: ["/placeholder.svg?height=600&width=600"],
-      dimensions: {
-        width: 0,
-        depth: 0,
-        height: 0,
-      },
-      materials: [""],
       careInstructions: [""],
       deliveryTime: "2-3 weeks",
       returnPolicy: "30-day return policy",
@@ -132,15 +82,221 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
     },
   })
 
+  // Replace the existing variant state with our new structure
+  const [variants, setVariants] = useState<Omit<ProductVariant, "id" | "productId">>({
+    materials: initialData?.variants?.[0]?.materials || [],
+    dimensions: initialData?.variants?.[0]?.dimensions || [],
+    combinations: initialData?.variants?.[0]?.combinations || [],
+    addOns: initialData?.variants?.[0]?.addOns || [],
+  })
+
+  // Replace the calculateVariantPrice function with a new one that uses combinations
+  const getVariantPrice = (materialName: string, dimensionValue: string): number => {
+    const combination = variants.combinations.find(
+      (c) => c.materialName === materialName && c.dimensionValue === dimensionValue,
+    )
+    return combination?.price || form.getValues("price")
+  }
+
+  // Replace the isInStock function
+  const isInStock = (materialName: string, dimensionValue: string): boolean => {
+    const combination = variants.combinations.find(
+      (c) => c.materialName === materialName && c.dimensionValue === dimensionValue,
+    )
+    return combination?.inStock ?? true
+  }
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const categoriesData = await getCategories()
+      setCategories(categoriesData.map((c) => ({ id: c.id, name: c.name })))
+    }
+
+    fetchCategories()
+  }, [])
+
+  // Handle variant changes
+  const handleVariantChange = (index: number, field: string, value: any) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[index] = {
+    //   ...updatedVariants[index],
+    //   [field]: value,
+    // }
+    // setVariants(updatedVariants)
+  }
+
+  // Handle material selection
+  const handleMaterialSelect = (index: number, materialName: string) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[index].material = materialName
+    // setVariants(updatedVariants)
+  }
+
+  // Handle dimension selection
+  const handleDimensionSelect = (index: number, dimensionValue: string) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[index].dimension = dimensionValue
+    // setVariants(updatedVariants)
+  }
+
+  // Handle add-on selection
+  const handleAddOnChange = (variantIndex: number, addOnIndex: number, selected: boolean) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].addOns[addOnIndex].selected = selected
+    // setVariants(updatedVariants)
+  }
+
+  // Add a new material option to a variant
+  const addMaterialOption = (variantIndex: number) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].materialOptions.push({
+    //   name: "",
+    //   priceAdjustment: 0,
+    // })
+    // setVariants(updatedVariants)
+  }
+
+  // Remove a material option from a variant
+  const removeMaterialOption = (variantIndex: number, materialIndex: number) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].materialOptions = updatedVariants[variantIndex].materialOptions.filter(
+    //   (_, i) => i !== materialIndex,
+    // )
+    // setVariants(updatedVariants)
+  }
+
+  // Update a material option
+  const updateMaterialOption = (
+    variantIndex: number,
+    materialIndex: number,
+    field: keyof MaterialOption,
+    value: any,
+  ) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].materialOptions[materialIndex][field] = value
+    // setVariants(updatedVariants)
+  }
+
+  // Add a new dimension option to a variant
+  const addDimensionOption = (variantIndex: number) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].dimensionOptions.push({
+    //   value: "",
+    //   priceAdjustment: 0,
+    // })
+    // setVariants(updatedVariants)
+  }
+
+  // Remove a dimension option from a variant
+  const removeDimensionOption = (variantIndex: number, dimensionIndex: number) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].dimensionOptions = updatedVariants[variantIndex].dimensionOptions.filter(
+    //   (_, i) => i !== dimensionIndex,
+    // )
+    // setVariants(updatedVariants)
+  }
+
+  // Update a dimension option
+  const updateDimensionOption = (
+    variantIndex: number,
+    dimensionIndex: number,
+    field: keyof DimensionOption,
+    value: any,
+  ) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].dimensionOptions[dimensionIndex][field] = value
+    // setVariants(updatedVariants)
+  }
+
+  // Add a new add-on option to a variant
+  const addAddOnOption = (variantIndex: number) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].addOns.push({
+    //   name: "",
+    //   price: 0,
+    //   selected: false,
+    // })
+    // setVariants(updatedVariants)
+  }
+
+  // Remove an add-on option from a variant
+  const removeAddOnOption = (variantIndex: number, addOnIndex: number) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].addOns = updatedVariants[variantIndex].addOns.filter((_, i) => i !== addOnIndex)
+    // setVariants(updatedVariants)
+  }
+
+  // Update an add-on option
+  const updateAddOnOption = (variantIndex: number, addOnIndex: number, field: keyof AddOnOption, value: any) => {
+    // const updatedVariants = [...variants]
+    // updatedVariants[variantIndex].addOns[addOnIndex][field] = value
+    // setVariants(updatedVariants)
+  }
+
+  // Add a new variant
+  const addVariant = () => {
+    // const basePrice = form.getValues("price")
+    // setVariants([
+    //   ...variants,
+    //   {
+    //     name: "",
+    //     sku: "",
+    //     basePrice: basePrice,
+    //     material: defaultMaterialOptions[0].name,
+    //     materialOptions: [...defaultMaterialOptions],
+    //     dimension: defaultDimensionOptions[0].value,
+    //     dimensionOptions: [...defaultDimensionOptions],
+    //     addOns: [...defaultAddOns],
+    //     attributes: {},
+    //     inStock: true,
+    //   },
+    // ])
+  }
+
+  // Remove a variant
+  const removeVariant = (index: number) => {
+    // setVariants(variants.filter((_, i) => i !== index))
+  }
+
   // Handle form submission
   const onSubmit = async (data: ProductFormData) => {
     setIsSubmitting(true)
 
     try {
-      // Add variants to the form data
+      // Ensure all material-dimension combinations have prices
+      const allCombinations = []
+
+      // Create combinations for any missing material-dimension pairs
+      variants.materials.forEach((material) => {
+        variants.dimensions.forEach((dimension) => {
+          const existingCombination = variants.combinations.find(
+            (c) => c.materialName === material.name && c.dimensionValue === dimension.value,
+          )
+
+          if (!existingCombination) {
+            allCombinations.push({
+              materialName: material.name,
+              dimensionValue: dimension.value,
+              price: data.price,
+              inStock: true,
+            })
+          } else {
+            allCombinations.push(existingCombination)
+          }
+        })
+      })
+
+      // Create a single variant with all materials, dimensions, and combinations
       const formDataWithVariants = {
         ...data,
-        variants,
+        variants: [
+          {
+            materials: variants.materials,
+            dimensions: variants.dimensions,
+            combinations: allCombinations,
+            addOns: variants.addOns,
+          },
+        ],
       }
 
       if (isEditing && initialData?.id) {
@@ -254,21 +410,26 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       try {
         // Create form data for upload
         const formData = new FormData()
-        formData.append("image", file)
+        formData.append("file", file) // Use "file" instead of "image" to match the API
+        formData.append("folder", "essen/products") // Specify the correct folder
 
         // Initialize progress for this file
         const progressKey = `${Date.now()}-${index}`
         newUploadProgress[progressKey] = 0
         setUploadProgress(newUploadProgress)
 
-        // Upload image
+        // Upload image with credentials
         const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
+          credentials: "include", // Include session cookies
         })
 
         if (!response.ok) {
-          throw new Error("Image upload failed")
+          // Get detailed error information
+          const errorText = await response.text().catch(() => "Unknown error")
+          console.error("Upload response error:", response.status, errorText)
+          throw new Error(`Image upload failed with status: ${response.status}`)
         }
 
         const { imageUrl } = await response.json()
@@ -294,7 +455,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       const uploadedImages = await Promise.all(uploadPromises)
 
       // Filter out any failed uploads
-      const validImages = uploadedImages.filter((img) => img !== null)
+      const validImages = uploadedImages.filter((img) => img !== null) as string[]
 
       if (validImages.length > 0) {
         // Get current images and add new ones
@@ -354,7 +515,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="name">Product Name</Label>
-              <Input
+              <SafeInput
                 id="name"
                 {...form.register("name")}
                 error={form.formState.errors.name?.message}
@@ -379,7 +540,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                   Generate
                 </Button>
               </div>
-              <Input id="slug" {...form.register("slug")} error={form.formState.errors.slug?.message} />
+              <SafeInput id="slug" {...form.register("slug")} error={form.formState.errors.slug?.message} />
               {form.formState.errors.slug && (
                 <p className="text-sm text-red-500">{form.formState.errors.slug.message}</p>
               )}
@@ -401,6 +562,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                     form.setValue("categoryId", selectedCategory.id)
                   }
                 }}
+                value={safeValue(form.watch("category"))}
               >
                 <option value="">Select a category</option>
                 {categories.map((category) => (
@@ -416,8 +578,8 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price ($)</Label>
-              <Input
+              <Label htmlFor="price">Base Price ($)</Label>
+              <SafeInput
                 id="price"
                 type="number"
                 step="0.01"
@@ -436,7 +598,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
               id="description"
               rows={5}
               {...form.register("description")}
-              error={form.formState.errors.description?.message}
+              value={safeValue(form.watch("description"))}
             />
             {form.formState.errors.description && (
               <p className="text-sm text-red-500">{form.formState.errors.description.message}</p>
@@ -470,9 +632,9 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
 
                 {form.watch("features").map((feature, index) => (
                   <div key={index} className="flex items-center space-x-2">
-                    <Input
+                    <SafeInput
                       value={feature}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const newFeatures = [...form.getValues("features")]
                         newFeatures[index] = e.target.value
                         form.setValue("features", newFeatures)
@@ -497,121 +659,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
             </CardContent>
           </Card>
 
-          {/* Colors */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Colors</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("colors")}>
-                    Add Color
-                  </Button>
-                </div>
-
-                {form.watch("colors").map((color, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Input
-                      value={color}
-                      onChange={(e) => {
-                        const newColors = [...form.getValues("colors")]
-                        newColors[index] = e.target.value
-                        form.setValue("colors", newColors)
-                      }}
-                      placeholder={`Color ${index + 1}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeArrayField("colors", index)}
-                      disabled={form.watch("colors").length <= 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Dimensions */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Dimensions</h3>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="width">Width (cm)</Label>
-                    <Input
-                      id="width"
-                      type="number"
-                      {...form.register("dimensions.width")}
-                      error={form.formState.errors.dimensions?.width?.message}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="depth">Depth (cm)</Label>
-                    <Input
-                      id="depth"
-                      type="number"
-                      {...form.register("dimensions.depth")}
-                      error={form.formState.errors.dimensions?.depth?.message}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="height">Height (cm)</Label>
-                    <Input
-                      id="height"
-                      type="number"
-                      {...form.register("dimensions.height")}
-                      error={form.formState.errors.dimensions?.height?.message}
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Materials */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Materials</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={() => addArrayField("materials")}>
-                    Add Material
-                  </Button>
-                </div>
-
-                {form.watch("materials")?.map((material, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <Input
-                      value={material}
-                      onChange={(e) => {
-                        const newMaterials = [...(form.getValues("materials") || [])]
-                        newMaterials[index] = e.target.value
-                        form.setValue("materials", newMaterials)
-                      }}
-                      placeholder={`Material ${index + 1}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeArrayField("materials", index)}
-                      disabled={(form.watch("materials") || []).length <= 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Care Instructions */}
           <Card>
             <CardContent className="pt-6">
@@ -625,9 +672,9 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
 
                 {form.watch("careInstructions")?.map((instruction, index) => (
                   <div key={index} className="flex items-center space-x-2">
-                    <Input
+                    <SafeInput
                       value={instruction}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const newInstructions = [...(form.getValues("careInstructions") || [])]
                         newInstructions[index] = e.target.value
                         form.setValue("careInstructions", newInstructions)
@@ -736,113 +783,457 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           </Card>
         </TabsContent>
 
+        {/* Replace the variant section in the TabsContent with value="variants" */}
         <TabsContent value="variants" className="space-y-6 py-4">
           <Card>
             <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Product Variants</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={addVariant}>
-                    Add Variant
-                  </Button>
-                </div>
+              <div className="space-y-6">
+                {/* Materials Management */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Materials</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setVariants({
+                          ...variants,
+                          materials: [...variants.materials, { name: "", description: "" }],
+                        })
+                      }}
+                      className="flex items-center"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add Material
+                    </Button>
+                  </div>
 
-                {variants.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No variants added. Add variants to offer different options like colors or sizes.
-                  </p>
-                ) : (
-                  variants.map((variant, index) => (
-                    <div key={index} className="border p-4 rounded-md space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-medium">Variant {index + 1}</h4>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(index)}>
-                          <Trash2 className="h-4 w-4" />
+                  <div className="grid grid-cols-1 gap-4">
+                    {variants.materials.map((material, materialIndex) => (
+                      <div key={materialIndex} className="flex items-center space-x-2 border p-3 rounded-md">
+                        <div className="flex-grow grid grid-cols-2 gap-2">
+                          <div>
+                            <Label htmlFor={`material-name-${materialIndex}`} className="text-xs">
+                              Material Name
+                            </Label>
+                            <SafeInput
+                              id={`material-name-${materialIndex}`}
+                              value={material.name}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const updatedMaterials = [...variants.materials]
+                                updatedMaterials[materialIndex].name = e.target.value
+                                setVariants({
+                                  ...variants,
+                                  materials: updatedMaterials,
+                                })
+                              }}
+                              placeholder="e.g., Fabric"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`material-desc-${materialIndex}`} className="text-xs">
+                              Description (Optional)
+                            </Label>
+                            <SafeInput
+                              id={`material-desc-${materialIndex}`}
+                              value={material.description || ""}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const updatedMaterials = [...variants.materials]
+                                updatedMaterials[materialIndex].description = e.target.value
+                                setVariants({
+                                  ...variants,
+                                  materials: updatedMaterials,
+                                })
+                              }}
+                              placeholder="e.g., Premium quality fabric"
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            // Remove material and any combinations using it
+                            const materialName = variants.materials[materialIndex].name
+                            const updatedMaterials = variants.materials.filter((_, i) => i !== materialIndex)
+                            const updatedCombinations = variants.combinations.filter(
+                              (c) => c.materialName !== materialName,
+                            )
+
+                            setVariants({
+                              ...variants,
+                              materials: updatedMaterials,
+                              combinations: updatedCombinations,
+                            })
+                          }}
+                          disabled={variants.materials.length <= 1}
+                        >
+                          <X className="h-4 w-4" />
                         </Button>
                       </div>
+                    ))}
+                  </div>
+                </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor={`variant-name-${index}`}>Variant Name</Label>
-                          <Input
-                            id={`variant-name-${index}`}
-                            value={variant.name}
-                            onChange={(e) => handleVariantChange(index, "name", e.target.value)}
-                            placeholder="e.g., Blue Large"
-                          />
-                        </div>
+                {/* Dimensions Management */}
+                <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Dimensions</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setVariants({
+                          ...variants,
+                          dimensions: [...variants.dimensions, { value: "", description: "" }],
+                        })
+                      }}
+                      className="flex items-center"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add Dimension
+                    </Button>
+                  </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor={`variant-sku-${index}`}>SKU</Label>
-                          <Input
-                            id={`variant-sku-${index}`}
-                            value={variant.sku}
-                            onChange={(e) => handleVariantChange(index, "sku", e.target.value)}
-                            placeholder="e.g., PROD-BLU-L"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor={`variant-price-${index}`}>Price</Label>
-                          <Input
-                            id={`variant-price-${index}`}
-                            type="number"
-                            step="0.01"
-                            value={variant.price}
-                            onChange={(e) => handleVariantChange(index, "price", Number.parseFloat(e.target.value))}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>In Stock</Label>
-                          <div className="pt-2">
-                            <Switch
-                              checked={variant.inStock}
-                              onCheckedChange={(checked) => handleVariantChange(index, "inStock", checked)}
+                  <div className="grid grid-cols-1 gap-4">
+                    {variants.dimensions.map((dimension, dimensionIndex) => (
+                      <div key={dimensionIndex} className="flex items-center space-x-2 border p-3 rounded-md">
+                        <div className="flex-grow grid grid-cols-2 gap-2">
+                          <div>
+                            <Label htmlFor={`dimension-value-${dimensionIndex}`} className="text-xs">
+                              Dimension Value
+                            </Label>
+                            <SafeInput
+                              id={`dimension-value-${dimensionIndex}`}
+                              value={dimension.value}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const updatedDimensions = [...variants.dimensions]
+                                updatedDimensions[dimensionIndex].value = e.target.value
+                                setVariants({
+                                  ...variants,
+                                  dimensions: updatedDimensions,
+                                })
+                              }}
+                              placeholder="e.g., 2600mm"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`dimension-desc-${dimensionIndex}`} className="text-xs">
+                              Description (Optional)
+                            </Label>
+                            <SafeInput
+                              id={`dimension-desc-${dimensionIndex}`}
+                              value={dimension.description || ""}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const updatedDimensions = [...variants.dimensions]
+                                updatedDimensions[dimensionIndex].description = e.target.value
+                                setVariants({
+                                  ...variants,
+                                  dimensions: updatedDimensions,
+                                })
+                              }}
+                              placeholder="e.g., Standard size"
                             />
                           </div>
                         </div>
-                      </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            // Remove dimension and any combinations using it
+                            const dimensionValue = variants.dimensions[dimensionIndex].value
+                            const updatedDimensions = variants.dimensions.filter((_, i) => i !== dimensionIndex)
+                            const updatedCombinations = variants.combinations.filter(
+                              (c) => c.dimensionValue !== dimensionValue,
+                            )
 
-                      <div className="space-y-2">
-                        <Label>Attributes</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Input
-                              placeholder="Attribute name (e.g., Color)"
-                              value={Object.keys(variant.attributes)[0] || ""}
-                              onChange={(e) => {
-                                const oldKey = Object.keys(variant.attributes)[0]
-                                const oldValue = oldKey ? variant.attributes[oldKey] : ""
-                                const newAttributes = {}
-                                if (e.target.value) {
-                                  newAttributes[e.target.value] = oldValue
-                                }
-                                handleVariantChange(index, "attributes", newAttributes)
+                            setVariants({
+                              ...variants,
+                              dimensions: updatedDimensions,
+                              combinations: updatedCombinations,
+                            })
+                          }}
+                          disabled={variants.dimensions.length <= 1}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Material-Dimension Combinations Matrix */}
+                <div className="space-y-4 border-t pt-4">
+                  <h3 className="text-lg font-medium">Pricing & Stock Matrix</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Set prices and stock status for each material and dimension combination.
+                  </p>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr>
+                          <th className="border p-2 bg-muted"></th>
+                          {variants.dimensions.map((dimension, i) => (
+                            <th key={i} className="border p-2 bg-muted text-center">
+                              {dimension.value}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {variants.materials.map((material, materialIndex) => (
+                          <tr key={materialIndex}>
+                            <td className="border p-2 font-medium bg-muted">{material.name}</td>
+                            {variants.dimensions.map((dimension, dimensionIndex) => {
+                              // Find existing combination or create default
+                              const combination = variants.combinations.find(
+                                (c) => c.materialName === material.name && c.dimensionValue === dimension.value,
+                              ) || {
+                                materialName: material.name,
+                                dimensionValue: dimension.value,
+                                price: form.getValues("price"),
+                                inStock: true,
+                              }
+
+                              return (
+                                <td key={dimensionIndex} className="border p-2">
+                                  <div className="space-y-2">
+                                    <div>
+                                      <Label htmlFor={`price-${materialIndex}-${dimensionIndex}`} className="text-xs">
+                                        Price ($)
+                                      </Label>
+                                      <SafeInput
+                                        id={`price-${materialIndex}-${dimensionIndex}`}
+                                        type="number"
+                                        step="0.01"
+                                        value={combination.price}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                          const price = Number.parseFloat(e.target.value)
+                                          const updatedCombinations = [...variants.combinations]
+
+                                          // Find if this combination already exists
+                                          const existingIndex = updatedCombinations.findIndex(
+                                            (c) =>
+                                              c.materialName === material.name && c.dimensionValue === dimension.value,
+                                          )
+
+                                          if (existingIndex >= 0) {
+                                            // Update existing combination
+                                            updatedCombinations[existingIndex] = {
+                                              ...updatedCombinations[existingIndex],
+                                              price,
+                                            }
+                                          } else {
+                                            // Add new combination
+                                            updatedCombinations.push({
+                                              materialName: material.name,
+                                              dimensionValue: dimension.value,
+                                              price,
+                                              inStock: true,
+                                            })
+                                          }
+
+                                          setVariants({
+                                            ...variants,
+                                            combinations: updatedCombinations,
+                                          })
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Switch
+                                        id={`stock-${materialIndex}-${dimensionIndex}`}
+                                        checked={combination.inStock}
+                                        onCheckedChange={(checked) => {
+                                          const updatedCombinations = [...variants.combinations]
+
+                                          // Find if this combination already exists
+                                          const existingIndex = updatedCombinations.findIndex(
+                                            (c) =>
+                                              c.materialName === material.name && c.dimensionValue === dimension.value,
+                                          )
+
+                                          if (existingIndex >= 0) {
+                                            // Update existing combination
+                                            updatedCombinations[existingIndex] = {
+                                              ...updatedCombinations[existingIndex],
+                                              inStock: checked,
+                                            }
+                                          } else {
+                                            // Add new combination
+                                            updatedCombinations.push({
+                                              materialName: material.name,
+                                              dimensionValue: dimension.value,
+                                              price: form.getValues("price"),
+                                              inStock: checked,
+                                            })
+                                          }
+
+                                          setVariants({
+                                            ...variants,
+                                            combinations: updatedCombinations,
+                                          })
+                                        }}
+                                      />
+                                      <Label htmlFor={`stock-${materialIndex}-${dimensionIndex}`} className="text-xs">
+                                        In Stock
+                                      </Label>
+                                    </div>
+                                    <div>
+                                      <Label htmlFor={`sku-${materialIndex}-${dimensionIndex}`} className="text-xs">
+                                        SKU (Optional)
+                                      </Label>
+                                      <SafeInput
+                                        id={`sku-${materialIndex}-${dimensionIndex}`}
+                                        value={combination.sku || ""}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                          const sku = e.target.value
+                                          const updatedCombinations = [...variants.combinations]
+
+                                          // Find if this combination already exists
+                                          const existingIndex = updatedCombinations.findIndex(
+                                            (c) =>
+                                              c.materialName === material.name && c.dimensionValue === dimension.value,
+                                          )
+
+                                          if (existingIndex >= 0) {
+                                            // Update existing combination
+                                            updatedCombinations[existingIndex] = {
+                                              ...updatedCombinations[existingIndex],
+                                              sku,
+                                            }
+                                          } else {
+                                            // Add new combination
+                                            updatedCombinations.push({
+                                              materialName: material.name,
+                                              dimensionValue: dimension.value,
+                                              price: form.getValues("price"),
+                                              inStock: true,
+                                              sku,
+                                            })
+                                          }
+
+                                          setVariants({
+                                            ...variants,
+                                            combinations: updatedCombinations,
+                                          })
+                                        }}
+                                        placeholder="e.g., PROD-FAB-2600"
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Add-ons Section */}
+                <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Add-ons</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setVariants({
+                          ...variants,
+                          addOns: [...variants.addOns, { name: "", price: 0, selected: false }],
+                        })
+                      }}
+                      className="flex items-center"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Add Add-on
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {variants.addOns.map((addon, addonIndex) => (
+                      <div key={addonIndex} className="flex items-center space-x-2 border p-3 rounded-md">
+                        <div className="flex-grow grid grid-cols-2 gap-2">
+                          <div>
+                            <Label htmlFor={`addon-name-${addonIndex}`} className="text-xs">
+                              Add-on Name
+                            </Label>
+                            <SafeInput
+                              id={`addon-name-${addonIndex}`}
+                              value={addon.name}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const updatedAddOns = [...variants.addOns]
+                                updatedAddOns[addonIndex].name = e.target.value
+                                setVariants({
+                                  ...variants,
+                                  addOns: updatedAddOns,
+                                })
+                              }}
+                              placeholder="e.g., Metal Frame"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`addon-price-${addonIndex}`} className="text-xs">
+                              Price ($)
+                            </Label>
+                            <SafeInput
+                              id={`addon-price-${addonIndex}`}
+                              type="number"
+                              step="0.01"
+                              value={addon.price}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const updatedAddOns = [...variants.addOns]
+                                updatedAddOns[addonIndex].price = Number.parseFloat(e.target.value)
+                                setVariants({
+                                  ...variants,
+                                  addOns: updatedAddOns,
+                                })
                               }}
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Input
-                              placeholder="Value (e.g., Blue)"
-                              value={Object.values(variant.attributes)[0] || ""}
-                              onChange={(e) => {
-                                const key = Object.keys(variant.attributes)[0]
-                                if (key) {
-                                  const newAttributes = { ...variant.attributes }
-                                  newAttributes[key] = e.target.value
-                                  handleVariantChange(index, "attributes", newAttributes)
-                                }
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`addon-selected-${addonIndex}`}
+                              checked={addon.selected || false}
+                              onCheckedChange={(checked) => {
+                                const updatedAddOns = [...variants.addOns]
+                                updatedAddOns[addonIndex].selected = checked === true
+                                setVariants({
+                                  ...variants,
+                                  addOns: updatedAddOns,
+                                })
                               }}
                             />
+                            <Label htmlFor={`addon-selected-${addonIndex}`} className="text-xs cursor-pointer">
+                              Default
+                            </Label>
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const updatedAddOns = variants.addOns.filter((_, i) => i !== addonIndex)
+                              setVariants({
+                                ...variants,
+                                addOns: updatedAddOns,
+                              })
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                  ))
-                )}
+                    ))}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -853,18 +1244,18 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="deliveryTime">Delivery Time</Label>
-              <Input id="deliveryTime" {...form.register("deliveryTime")} placeholder="e.g., 2-3 weeks" />
+              <SafeInput id="deliveryTime" {...form.register("deliveryTime")} placeholder="e.g., 2-3 weeks" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="warranty">Warranty</Label>
-              <Input id="warranty" {...form.register("warranty")} placeholder="e.g., 2-year warranty" />
+              <SafeInput id="warranty" {...form.register("warranty")} placeholder="e.g., 2-year warranty" />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="returnPolicy">Return Policy</Label>
-            <Input id="returnPolicy" {...form.register("returnPolicy")} placeholder="e.g., 30-day return policy" />
+            <SafeInput id="returnPolicy" {...form.register("returnPolicy")} placeholder="e.g., 30-day return policy" />
           </div>
         </TabsContent>
       </Tabs>

@@ -26,10 +26,6 @@ export default function ProductsPage() {
     const fetchProducts = async () => {
       setIsLoading(true)
 
-      // Seed initial data if none exists (for development)
-      await seedInitialCategories()
-      await seedInitialProducts()
-
       // Parse filters from URL
       const categoryParam = searchParams.get("category")
       const minPrice = searchParams.get("minPrice")

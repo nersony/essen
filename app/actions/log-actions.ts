@@ -53,8 +53,16 @@ export async function getActivityLogsAction(
     const total = await getActivityLogsCount(processedFilters)
     const pages = Math.ceil(total / limit)
 
-    // Log the activity
-    await logActivity(session.user.id, session.user.email, "view_logs", "Viewed activity logs", undefined, "logs")
+    // Log the activity - pass user role to skip logging for superadmins
+    await logActivity(
+      session.user.id,
+      session.user.email,
+      "view_logs",
+      "Viewed activity logs",
+      undefined,
+      "logs",
+      session.user.role,
+    )
 
     return {
       success: true,

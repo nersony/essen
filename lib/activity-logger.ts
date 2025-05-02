@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid"
 import clientPromise from "@/lib/mongodb"
-import type { ActivityLog, ActivityLogAction } from "@/lib/db/schema"
+import type { ActivityLog, ActivityLogAction, UserRole } from "@/lib/db/schema"
 import { headers } from "next/headers"
 
 // Collection name
@@ -13,8 +13,15 @@ export async function logActivity(
   details: string,
   entityId?: string,
   entityType?: string,
+  userRole?: UserRole, // Add optional userRole parameter
 ): Promise<void> {
   try {
+    // Skip logging for superadmin users
+    if (userRole === "super_admin") {
+      console.log(`Activity logging skipped for superadmin user: ${userEmail}, action: ${action}`)
+      return
+    }
+
     const client = await clientPromise
     const db = client.db()
 

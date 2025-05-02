@@ -1,24 +1,23 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { v4 as uuidv4 } from "uuid"
-import clientPromise from "@/lib/mongodb"
-import type { Category, CategoryFormData } from "@/lib/db/schema"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import clientPromise from "@/lib/mongodb"
+import { v4 as uuidv4 } from "uuid"
 import { logActivity } from "@/lib/activity-logger"
+import type { Category, CategoryFormData } from "@/lib/db/schema"
 
 // Collection name
-const COLLECTION_NAME = "categories"
+const COLLECTION_NAME = process.env.MONGODB_CATEGORY_COLLECTION_NAME || "categories"
 
 // Get all categories
 export async function getCategories(): Promise<Category[]> {
   try {
     const client = await clientPromise
     const db = client.db()
-    const categories = await db.collection(COLLECTION_NAME).find({}).sort({ order: 1 }).toArray()
+    const categories = await db.collection(COLLECTION_NAME).find({}).toArray()
 
-    // Convert MongoDB _id to id if needed
     return categories.map((category) => ({
       ...category,
       id: category._id.toString(),
@@ -55,9 +54,12 @@ export async function getCategoryById(id: string): Promise<Category | null> {
   try {
     const client = await clientPromise
     const db = client.db()
+
     const category = await db.collection(COLLECTION_NAME).findOne({ id })
 
-    if (!category) return null
+    if (!category) {
+      return null
+    }
 
     return {
       ...category,
@@ -90,15 +92,9 @@ export async function createCategory(
       return { success: false, message: "A category with this slug already exists" }
     }
 
-    // Get the highest order value to place the new category at the end
-    const highestOrderCategory = await db.collection(COLLECTION_NAME).find({}).sort({ order: -1 }).limit(1).toArray()
-
-    const nextOrder = highestOrderCategory.length > 0 ? highestOrderCategory[0].order + 1 : 0
-
     const newCategory: Category = {
       ...categoryData,
       id: uuidv4(),
-      order: nextOrder,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -113,6 +109,7 @@ export async function createCategory(
       `Created category: ${newCategory.name}`,
       newCategory.id,
       "category",
+      session.user.role,
     )
 
     revalidatePath("/products")
@@ -171,10 +168,12 @@ export async function updateCategory(
       `Updated category: ${updatedCategory.name}`,
       updatedCategory.id,
       "category",
+      session.user.role,
     )
 
     revalidatePath("/products")
     revalidatePath("/admin/categories")
+    revalidatePath(`/admin/categories/${id}`)
 
     return { success: true, message: "Category updated successfully", category: updatedCategory }
   } catch (error) {
@@ -195,9 +194,9 @@ export async function deleteCategory(id: string): Promise<{ success: boolean; me
     const client = await clientPromise
     const db = client.db()
 
-    // Get the category before deletion for logging
-    const categoryToDelete = await getCategoryById(id)
-    if (!categoryToDelete) {
+    // Check if the category exists
+    const existingCategory = await db.collection(COLLECTION_NAME).findOne({ id })
+    if (!existingCategory) {
       return { success: false, message: "Category not found" }
     }
 
@@ -210,20 +209,17 @@ export async function deleteCategory(id: string): Promise<{ success: boolean; me
       }
     }
 
-    const result = await db.collection(COLLECTION_NAME).deleteOne({ id })
-
-    if (result.deletedCount === 0) {
-      return { success: false, message: "Category not found" }
-    }
+    await db.collection(COLLECTION_NAME).deleteOne({ id })
 
     // Log the activity
     await logActivity(
       session.user.id,
       session.user.email,
       "delete_category",
-      `Deleted category: ${categoryToDelete.name}`,
+      `Deleted category: ${existingCategory.name}`,
       id,
       "category",
+      session.user.role,
     )
 
     revalidatePath("/products")
@@ -233,70 +229,5 @@ export async function deleteCategory(id: string): Promise<{ success: boolean; me
   } catch (error) {
     console.error(`Failed to delete category with ID ${id}:`, error)
     return { success: false, message: "Failed to delete category" }
-  }
-}
-
-// Seed initial categories (for development)
-export async function seedInitialCategories(): Promise<{ success: boolean; message: string }> {
-  try {
-    const client = await clientPromise
-    const db = client.db()
-
-    // Check if categories already exist
-    const count = await db.collection(COLLECTION_NAME).countDocuments()
-    if (count > 0) {
-      return { success: true, message: "Categories already exist, skipping seed" }
-    }
-
-    const initialCategories: CategoryFormData[] = [
-      {
-        name: "Living Room",
-        slug: "living-room",
-        description: "Furniture for your living room including sofas, coffee tables, and TV stands.",
-        order: 0,
-      },
-      {
-        name: "Dining Room",
-        slug: "dining-room",
-        description: "Dining tables, chairs, and sideboards for your dining area.",
-        order: 1,
-      },
-      {
-        name: "Bedroom",
-        slug: "bedroom",
-        description: "Beds, nightstands, and wardrobes for your bedroom.",
-        order: 2,
-      },
-      {
-        name: "Office",
-        slug: "office",
-        description: "Desks, office chairs, and bookshelves for your home office.",
-        order: 3,
-      },
-      {
-        name: "Outdoor",
-        slug: "outdoor",
-        description: "Patio furniture, garden sets, and outdoor accessories.",
-        order: 4,
-      },
-    ]
-
-    // Add IDs and timestamps
-    const categoriesWithIds = initialCategories.map((category) => ({
-      ...category,
-      id: uuidv4(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }))
-
-    await db.collection(COLLECTION_NAME).insertMany(categoriesWithIds)
-
-    revalidatePath("/products")
-    revalidatePath("/admin/categories")
-
-    return { success: true, message: "Initial categories seeded successfully" }
-  } catch (error) {
-    console.error("Failed to seed initial categories:", error)
-    return { success: false, message: "Failed to seed initial categories" }
   }
 }

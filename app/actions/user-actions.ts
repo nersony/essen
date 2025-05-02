@@ -27,7 +27,12 @@ export async function createUserAction(
     }
 
     // Create the user
-    const newUser = await createUser({ name, email, password, role }, session.user.id, session.user.email)
+    const newUser = await createUser(
+      { name, email, password, role },
+      session.user.id,
+      session.user.email,
+      session.user.role,
+    )
 
     if (!newUser) {
       return { success: false, message: "Failed to create user or user already exists" }
@@ -89,7 +94,7 @@ export async function updateUserAction(
     }
 
     // Update the user
-    const updatedUser = await updateUser(id, userData, session.user.id, session.user.email)
+    const updatedUser = await updateUser(id, userData, session.user.id, session.user.email, session.user.role)
 
     if (!updatedUser) {
       return { success: false, message: "Failed to update user" }
@@ -138,7 +143,7 @@ export async function deleteUserAction(id: string): Promise<{ success: boolean; 
     }
 
     // Delete the user
-    const success = await deleteUser(id, session.user.id, session.user.email)
+    const success = await deleteUser(id, session.user.id, session.user.email, session.user.role)
 
     if (!success) {
       return { success: false, message: "Failed to delete user" }
@@ -171,8 +176,16 @@ export async function getUsersAction(): Promise<{
       return { success: false, message: "Forbidden" }
     }
 
-    // Log the activity
-    await logActivity(session.user.id, session.user.email, "view_users", "Viewed user list", undefined, "user")
+    // Log the activity - pass user role to skip logging for superadmins
+    await logActivity(
+      session.user.id,
+      session.user.email,
+      "view_users",
+      "Viewed user list",
+      undefined,
+      "user",
+      session.user.role,
+    )
 
     // Get users based on role
     const isSuperAdmin = session.user.role === "super_admin"
