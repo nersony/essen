@@ -1,27 +1,28 @@
-let userConfig = undefined
+let userConfig = undefined;
+
 try {
-  // try to import ESM first
-  userConfig = await import('./v0-user-next.config.mjs')
+  // Try to import ESM config
+  userConfig = await import('./v0-user-next.config.mjs');
 } catch (e) {
   try {
-    // fallback to CJS import
-    userConfig = await import("./v0-user-next.config");
+    // Fallback to CJS-compatible config
+    userConfig = await import('./v0-user-next.config');
   } catch (innerError) {
-    // ignore error
+    // Silently ignore if both imports fail
   }
 }
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone', // This creates a more optimized build for deployment
+  output: 'standalone', // Enables optimized Docker deployment
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // Not recommended for production, but useful for CI/testing
   },
   images: {
-    unoptimized: true,
+    unoptimized: true, // Disables Image Optimization (uses <img> instead of <Image>)
     domains: ['dev-essen.xyzap.site'],
     remotePatterns: [
       {
@@ -37,27 +38,27 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-  // Mark certain dynamic routes to not be statically generated
-  unstable_excludeFiles: ['**/node_modules/**'],
-}
+  unstable_excludeFiles: ['**/node_modules/**'], // Prevents unwanted files from being bundled
+};
 
+// Merge userConfig if available
 if (userConfig) {
-  // ESM imports will have a "default" property
-  const config = userConfig.default || userConfig
+  const config = userConfig.default || userConfig;
 
   for (const key in config) {
     if (
       typeof nextConfig[key] === 'object' &&
-      !Array.isArray(nextConfig[key])
+      !Array.isArray(nextConfig[key]) &&
+      config[key] !== null
     ) {
       nextConfig[key] = {
         ...nextConfig[key],
         ...config[key],
-      }
+      };
     } else {
-      nextConfig[key] = config[key]
+      nextConfig[key] = config[key];
     }
   }
 }
 
-export default nextConfig
+export default nextConfig;
