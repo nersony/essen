@@ -153,7 +153,7 @@ export function UserForm({ initialData, currentUserRole, isEditing = false }: Us
               {canEditRoles && <SelectItem value="super_admin">Super Admin</SelectItem>}
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="editor">Editor</SelectItem>
-              <SelectItem value="customer">Customer</SelectItem>
+              {/* <SelectItem value="customer">Customer</SelectItem> */}
             </SelectContent>
           </Select>
           {!canEditRoles && <p className="text-xs text-muted-foreground">Only super admins can change user roles</p>}

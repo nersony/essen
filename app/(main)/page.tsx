@@ -4,9 +4,43 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CalendarClock, Star, MapPin, Phone } from "lucide-react"
 import { GoogleReviewsSection } from "@/components/google-reviews-section"
 import { SimplifiedContactForm } from "@/components/simplified-contact-form"
+import { getProducts } from "@/app/actions/product-actions"
 
-export default function Home() {
-  const featuredProducts = [
+// Add this function to get the formatted price for a product
+function getFormattedPrice(product) {
+  if (!product) return "Price upon request"
+
+  if (product.variants && product.variants.length > 0 && product.variants[0].combinations) {
+    // Filter for in-stock combinations only
+    const inStockCombinations = product.variants[0].combinations.filter((c) => c.inStock)
+
+    // Get valid prices (ensure they're numbers and greater than 0)
+    const validPrices = inStockCombinations
+      .map((c) => c.price)
+      .filter((price) => typeof price === "number" && !isNaN(price) && price > 0)
+
+    if (validPrices.length > 0) {
+      return `From $${Math.min(...validPrices).toFixed(2)}`
+    }
+  }
+
+  return product.price ? `$${product.price.toFixed(2)}` : "Price upon request"
+}
+
+export default async function Home() {
+  // Fetch weekly best sellers from the database
+  const allProducts = await getProducts()
+
+  // Filter for products marked as weekly best sellers
+  let weeklyBestSellers = allProducts.filter((product) => product.isWeeklyBestSeller)
+
+  // Limit to 4 products if we have any weekly best sellers
+  if (weeklyBestSellers.length > 0) {
+    weeklyBestSellers = weeklyBestSellers.slice(0, 4)
+  }
+
+  // Fallback data in case no products are available
+  const fallbackProducts = [
     {
       id: 1,
       name: "VELA",
@@ -40,6 +74,19 @@ export default function Home() {
       href: "/product/eclat",
     },
   ]
+
+  // Use real products if available, otherwise use fallback
+  const featuredProducts =
+    weeklyBestSellers.length > 0
+      ? weeklyBestSellers.map((product) => ({
+          id: product.id,
+          name: product.name,
+          image: product.images[0] || "/placeholder.svg?height=400&width=400",
+          price: getFormattedPrice(product),
+          category: product.category,
+          href: `/products/${product.slug}`,
+        }))
+      : fallbackProducts
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -158,28 +205,33 @@ export default function Home() {
         <div className="container">
           <div className="essen-section-subtitle">YOUR ESSENTIAL LIVING EXPERT</div>
           <h2 className="essen-section-title mb-12">WEEKLY BEST SELLERS</h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredProducts.map((product) => (
-              <div key={product.id} className="bg-white">
-                <div className="aspect-square overflow-hidden">
-                  <Image
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    width={400}
-                    height={400}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="p-4 text-center">
-                  <h3 className="font-medium">{product.name}</h3>
-                  <p className="text-sm text-muted-foreground">{product.category}</p>
-                  <p className="text-sm font-medium mt-1">{product.price}</p>
-                </div>
-              </div>
-            ))}
+
+          {/* Centered product grid */}
+          <div className="flex justify-center">
+            <div className={`grid gap-6 ${getGridColumns(featuredProducts.length)}`}>
+              {featuredProducts.map((product) => (
+                <Link href={product.href} key={product.id} className="bg-white group w-full max-w-xs">
+                  <div className="aspect-square overflow-hidden">
+                    <Image
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      width={400}
+                      height={400}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-4 text-center">
+                    <h3 className="font-medium">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground">{product.category}</p>
+                    <p className="text-sm font-medium mt-1">{product.price}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
+
           <div className="mt-12 text-center">
-            <Link href="/visit-us" className="essen-button-primary">
+            <Link href="/products" className="essen-button-primary">
               VIEW MORE
             </Link>
           </div>
@@ -332,4 +384,18 @@ export default function Home() {
       </section>
     </div>
   )
+}
+
+// Helper function to determine grid columns based on number of products
+function getGridColumns(count) {
+  switch (count) {
+    case 1:
+      return "grid-cols-1"
+    case 2:
+      return "grid-cols-1 sm:grid-cols-2"
+    case 3:
+      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+    default:
+      return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+  }
 }

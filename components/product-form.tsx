@@ -29,7 +29,6 @@ const productFormSchema = z.object({
     .min(1, "Slug is required")
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens"),
   category: z.string().min(1, "Category is required"),
-  price: z.coerce.number().min(0, "Price must be a positive number"),
   description: z.string().min(1, "Description is required"),
   features: z.array(z.string()).min(1, "At least one feature is required"),
   images: z.array(z.string()),
@@ -38,6 +37,7 @@ const productFormSchema = z.object({
   returnPolicy: z.string().optional(),
   warranty: z.string().optional(),
   inStock: z.boolean().default(true),
+  isWeeklyBestSeller: z.boolean().default(false),
 })
 
 interface ProductFormProps {
@@ -63,6 +63,27 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
 
+  // Default material options
+  const defaultMaterialOptions: MaterialOption[] = [
+    { name: "Fabric", priceAdjustment: 0 },
+    { name: "Leather", priceAdjustment: 300 },
+    { name: "Velvet", priceAdjustment: 200 },
+    { name: "Linen", priceAdjustment: 150 },
+  ]
+
+  // Default dimension options
+  const defaultDimensionOptions: DimensionOption[] = [
+    { value: "2600mm", priceAdjustment: 0 },
+    { value: "3000mm", priceAdjustment: 200 },
+    { value: "3400mm", priceAdjustment: 400 },
+  ]
+
+  // Default add-on options
+  const defaultAddOns: AddOnOption[] = [
+    { name: "Metal Frame", price: 200, selected: false },
+    { name: "Premium Cushions", price: 150, selected: false },
+  ]
+
   // Initialize form with default values or initial data
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
@@ -70,7 +91,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       name: "",
       slug: "",
       category: "",
-      price: 0,
       description: "",
       features: [""],
       images: ["/placeholder.svg?height=600&width=600"],
@@ -79,6 +99,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       returnPolicy: "30-day return policy",
       warranty: "2-year warranty",
       inStock: true,
+      isWeeklyBestSeller: false,
     },
   })
 
@@ -95,7 +116,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
     const combination = variants.combinations.find(
       (c) => c.materialName === materialName && c.dimensionValue === dimensionValue,
     )
-    return combination?.price || form.getValues("price")
+    return combination?.price || 0 // Use 0 as default instead of form.getValues("price")
   }
 
   // Replace the isInStock function
@@ -277,7 +298,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
             allCombinations.push({
               materialName: material.name,
               dimensionValue: dimension.value,
-              price: data.price,
+              price: 0, // Default to 0 instead of data.price
               inStock: true,
             })
           } else {
@@ -578,17 +599,17 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Base Price ($)</Label>
-              <SafeInput
-                id="price"
-                type="number"
-                step="0.01"
-                {...form.register("price")}
-                error={form.formState.errors.price?.message}
-              />
-              {form.formState.errors.price && (
-                <p className="text-sm text-red-500">{form.formState.errors.price.message}</p>
-              )}
+              <Label htmlFor="isWeeklyBestSeller">Weekly Best Seller</Label>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isWeeklyBestSeller"
+                  checked={form.watch("isWeeklyBestSeller")}
+                  onCheckedChange={(checked) => form.setValue("isWeeklyBestSeller", checked)}
+                />
+                <Label htmlFor="isWeeklyBestSeller" className="text-sm text-muted-foreground">
+                  Feature this product on the home page as a weekly best seller
+                </Label>
+              </div>
             </div>
           </div>
 
@@ -994,7 +1015,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                               ) || {
                                 materialName: material.name,
                                 dimensionValue: dimension.value,
-                                price: form.getValues("price"),
+                                price: 0,
                                 inStock: true,
                               }
 
@@ -1067,7 +1088,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                             updatedCombinations.push({
                                               materialName: material.name,
                                               dimensionValue: dimension.value,
-                                              price: form.getValues("price"),
+                                              price: 0,
                                               inStock: checked,
                                             })
                                           }
@@ -1081,48 +1102,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                       <Label htmlFor={`stock-${materialIndex}-${dimensionIndex}`} className="text-xs">
                                         In Stock
                                       </Label>
-                                    </div>
-                                    <div>
-                                      <Label htmlFor={`sku-${materialIndex}-${dimensionIndex}`} className="text-xs">
-                                        SKU (Optional)
-                                      </Label>
-                                      <SafeInput
-                                        id={`sku-${materialIndex}-${dimensionIndex}`}
-                                        value={combination.sku || ""}
-                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                          const sku = e.target.value
-                                          const updatedCombinations = [...variants.combinations]
-
-                                          // Find if this combination already exists
-                                          const existingIndex = updatedCombinations.findIndex(
-                                            (c) =>
-                                              c.materialName === material.name && c.dimensionValue === dimension.value,
-                                          )
-
-                                          if (existingIndex >= 0) {
-                                            // Update existing combination
-                                            updatedCombinations[existingIndex] = {
-                                              ...updatedCombinations[existingIndex],
-                                              sku,
-                                            }
-                                          } else {
-                                            // Add new combination
-                                            updatedCombinations.push({
-                                              materialName: material.name,
-                                              dimensionValue: dimension.value,
-                                              price: form.getValues("price"),
-                                              inStock: true,
-                                              sku,
-                                            })
-                                          }
-
-                                          setVariants({
-                                            ...variants,
-                                            combinations: updatedCombinations,
-                                          })
-                                        }}
-                                        placeholder="e.g., PROD-FAB-2600"
-                                      />
                                     </div>
                                   </div>
                                 </td>

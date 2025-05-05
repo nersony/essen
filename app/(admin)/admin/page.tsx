@@ -6,6 +6,40 @@ import { getUsers } from "@/lib/user-service"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Package, ShoppingBag, Users, DollarSign } from "lucide-react"
 
+// Helper function to get formatted price
+function getFormattedPrice(product: any) {
+  // Check if the product has variants with combinations
+  if (
+    product.variants &&
+    product.variants.length > 0 &&
+    product.variants[0].combinations &&
+    product.variants[0].combinations.length > 0
+  ) {
+    // Filter out combinations that are in stock and have valid numeric prices
+    const inStockCombinations = product.variants[0].combinations.filter(
+      (combo: any) => combo.inStock && !isNaN(Number.parseFloat(combo.price)) && Number.parseFloat(combo.price) > 0,
+    )
+
+    if (inStockCombinations.length > 0) {
+      // Get the minimum price from in-stock combinations
+      const prices = inStockCombinations.map((combo: any) => Number.parseFloat(combo.price))
+      const minPrice = Math.min(...prices)
+
+      if (!isNaN(minPrice) && minPrice > 0) {
+        return `From $${minPrice.toFixed(2)}`
+      }
+    }
+  }
+
+  // Fallback to base price if available and valid
+  if (!isNaN(Number.parseFloat(product.price)) && Number.parseFloat(product.price) > 0) {
+    return `$${Number.parseFloat(product.price).toFixed(2)}`
+  }
+
+  // If no valid price is found
+  return "Price upon request"
+}
+
 export default async function AdminDashboard() {
   // Get the current user session
   const session = await getServerSession(authOptions)
@@ -104,7 +138,7 @@ export default async function AdminDashboard() {
                 </div>
                 <div>{product.name}</div>
                 <div>{product.category}</div>
-                <div>${product.price.toFixed(2)}</div>
+                <div>{getFormattedPrice(product)}</div>
                 <div>
                   <Link href={`/admin/products/${product.id}`} className="text-sm text-primary hover:underline">
                     Edit
@@ -131,12 +165,15 @@ export default async function AdminDashboard() {
             <p className="text-sm text-muted-foreground">Create a new product listing</p>
           </Link>
 
-          {isSuperAdmin && (
-            <Link href="/admin/users/new" className="border rounded-md p-4 hover:bg-secondary transition-colors">
-              <h3 className="font-medium">Add New User</h3>
-              <p className="text-sm text-muted-foreground">Create a new admin user</p>
-            </Link>
-          )}
+          <Link href="/admin/categories/new" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+            <h3 className="font-medium">Add New Category</h3>
+            <p className="text-sm text-muted-foreground">Create a new category</p>
+          </Link>
+
+          <Link href="/admin/users/new" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+            <h3 className="font-medium">Add New User</h3>
+            <p className="text-sm text-muted-foreground">Create a new user</p>
+          </Link>
 
           {isSuperAdmin && (
             <Link href="/admin/logs" className="border rounded-md p-4 hover:bg-secondary transition-colors">
@@ -145,10 +182,10 @@ export default async function AdminDashboard() {
             </Link>
           )}
 
-          <Link href="/admin/settings" className="border rounded-md p-4 hover:bg-secondary transition-colors">
+          {/* <Link href="/admin/settings" className="border rounded-md p-4 hover:bg-secondary transition-colors">
             <h3 className="font-medium">Settings</h3>
             <p className="text-sm text-muted-foreground">Configure store settings</p>
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>

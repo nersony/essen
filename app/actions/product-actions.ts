@@ -348,7 +348,21 @@ export async function getProductsWithFilters(filters: any): Promise<Product[]> {
     }
 
     if (filters.priceRange) {
-      query.price = { $gte: filters.priceRange.min, $lte: filters.priceRange.max }
+      // Create a complex query that checks both legacy price field and variant combinations
+      query.$or = [
+        // Check prices in variant combinations
+        {
+          "variants.combinations": {
+            $elemMatch: {
+              price: {
+                $gte: filters.priceRange.min,
+                $lte: filters.priceRange.max,
+              },
+              inStock: true,
+            },
+          },
+        },
+      ]
     }
 
     if (filters.attributes) {
@@ -367,3 +381,73 @@ export async function getProductsWithFilters(filters: any): Promise<Product[]> {
   }
 }
 
+// Seed initial products (for development)
+export async function seedInitialProducts(): Promise<{ success: boolean; message: string }> {
+  try {
+    const client = await clientPromise
+    const db = client.db()
+
+    // Check if products already exist
+    const count = await db.collection(COLLECTION_NAME).countDocuments()
+    if (count > 0) {
+      return { success: true, message: "Products already exist, skipping seed" }
+    }
+
+    const initialProducts: ProductFormData[] = [
+      {
+        name: "Minimalist Wooden Chair",
+        slug: "minimalist-wooden-chair",
+        category: "Living Room",
+        categoryId: "living-room-id",
+        price: 79.99,
+        description: "A simple and elegant wooden chair for any modern living space.",
+        features: ["Durable construction", "Easy to assemble", "Eco-friendly materials"],
+        colors: ["Natural Wood", "Black", "White"],
+        images: ["/images/vela.png"],
+        dimensions: { width: 50, depth: 45, height: 80 },
+        materials: ["Wood", "Fabric"],
+        careInstructions: ["Wipe clean with a damp cloth"],
+        deliveryTime: "5-7 business days",
+        returnPolicy: "30-day return policy",
+        warranty: "1-year warranty",
+        inStock: true,
+      },
+      {
+        name: "Modern Coffee Table",
+        slug: "modern-coffee-table",
+        category: "Living Room",
+        categoryId: "living-room-id",
+        price: 149.99,
+        description: "A sleek and stylish coffee table to complement your living room decor.",
+        features: ["Tempered glass top", "Chrome legs", "Easy to clean"],
+        colors: ["Black", "Silver"],
+        images: ["/images/aequus.png"],
+        dimensions: { width: 120, depth: 60, height: 40 },
+        materials: ["Glass", "Metal"],
+        careInstructions: ["Wipe clean with glass cleaner"],
+        deliveryTime: "7-10 business days",
+        returnPolicy: "30-day return policy",
+        warranty: "1-year warranty",
+        inStock: true,
+      },
+    ]
+
+    // Add IDs and timestamps
+    const productsWithIds = initialProducts.map((product) => ({
+      ...product,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+
+    await db.collection(COLLECTION_NAME).insertMany(productsWithIds)
+
+    revalidatePath("/products")
+    revalidatePath("/admin/products")
+
+    return { success: true, message: "Initial products seeded successfully" }
+  } catch (error) {
+    console.error("Failed to seed initial products:", error)
+    return { success: false, message: "Failed to seed initial products" }
+  }
+}

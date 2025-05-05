@@ -6,6 +6,40 @@ import { PlusCircle } from "lucide-react"
 // Import the image utility at the top of the file
 import { ensureCorrectImagePath } from "@/lib/image-utils"
 
+// Helper function to get the formatted price
+function getFormattedPrice(product: any) {
+  // Check if the product has variants with combinations
+  if (
+    product.variants &&
+    product.variants.length > 0 &&
+    product.variants[0].combinations &&
+    product.variants[0].combinations.length > 0
+  ) {
+    // Filter out combinations that are in stock and have valid numeric prices
+    const inStockCombinations = product.variants[0].combinations.filter(
+      (combo: any) => combo.inStock && !isNaN(Number.parseFloat(combo.price)) && Number.parseFloat(combo.price) > 0,
+    )
+
+    if (inStockCombinations.length > 0) {
+      // Get the minimum price from in-stock combinations
+      const prices = inStockCombinations.map((combo: any) => Number.parseFloat(combo.price))
+      const minPrice = Math.min(...prices)
+
+      if (!isNaN(minPrice) && minPrice > 0) {
+        return `From $${minPrice.toFixed(2)}`
+      }
+    }
+  }
+
+  // Fallback to base price if available and valid
+  if (!isNaN(Number.parseFloat(product.price)) && Number.parseFloat(product.price) > 0) {
+    return `$${Number.parseFloat(product.price).toFixed(2)}`
+  }
+
+  // If no valid price is found
+  return "Price upon request"
+}
+
 export default async function AdminProductsPage() {
   const products = await getProducts()
 
@@ -44,7 +78,7 @@ export default async function AdminProductsPage() {
               </div>
               <div>{product.name}</div>
               <div>{product.category}</div>
-              <div>${product.price.toFixed(2)}</div>
+              <div>{getFormattedPrice(product)}</div>
               <div>
                 <span
                   className={`px-2 py-1 rounded-full text-xs ${product.inStock ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}

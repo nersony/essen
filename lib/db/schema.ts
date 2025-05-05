@@ -4,7 +4,7 @@ export type Product = {
   slug: string
   category: string
   categoryId: string // Reference to the category
-  price: number // Base price
+  price?: number // Make base price optional
   description: string
   features: string[]
   images: string[]
@@ -13,6 +13,7 @@ export type Product = {
   returnPolicy?: string
   warranty?: string
   inStock: boolean
+  isWeeklyBestSeller?: boolean // Add this field
   variants?: ProductVariant[]
   attributes?: Record<string, string[]> // Flexible attributes for filtering
   createdAt: Date
@@ -75,6 +76,7 @@ export type CategoryFormData = Omit<Category, "id" | "createdAt" | "updatedAt"> 
 export type ProductFormData = Omit<Product, "id" | "createdAt" | "updatedAt"> & {
   id?: string
   variants?: Omit<ProductVariant, "id" | "productId">[]
+  isWeeklyBestSeller?: boolean
 }
 
 export type UserRole = "super_admin" | "admin" | "editor" | "customer"

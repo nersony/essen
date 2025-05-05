@@ -5,8 +5,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { getProducts, getProductsWithFilters } from "@/app/actions/product-actions"
-import { seedInitialProducts } from "@/app/actions/product-actions"
-import { seedInitialCategories } from "@/app/actions/category-actions"
 import { Button } from "@/components/ui/button"
 import { ProductFilters } from "@/components/product-filters"
 import type { Product } from "@/lib/db/schema"
@@ -162,9 +160,25 @@ export default function ProductsPage() {
                         <h3 className="font-bold text-lg uppercase">{product.name}</h3>
                         <p className="text-muted-foreground text-sm uppercase mb-2">{product.category}</p>
                         <p className="font-medium mb-4">
-                          {product.variants && product.variants.length > 0
-                            ? `From $${Math.min(...product.variants.map((v) => v.price)).toFixed(2)}`
-                            : `$${product.price.toFixed(2)}`}
+                          {product.variants && product.variants.length > 0 && product.variants[0].combinations
+                            ? (() => {
+                                // Filter for in-stock combinations only
+                                const inStockCombinations = product.variants[0].combinations.filter((c) => c.inStock)
+
+                                // Get valid prices (ensure they're numbers and greater than 0)
+                                const validPrices = inStockCombinations
+                                  .map((c) => c.price)
+                                  .filter((price) => typeof price === "number" && !isNaN(price) && price > 0)
+
+                                if (validPrices.length > 0) {
+                                  return `From $${Math.min(...validPrices).toFixed(2)}`
+                                } else {
+                                  return "Price upon request"
+                                }
+                              })()
+                            : product.price
+                              ? `$${product.price.toFixed(2)}`
+                              : "Price upon request"}
                         </p>
                         <Button asChild variant="outline" className="mt-auto">
                           <Link href={`/products/${product.slug}`}>View Details</Link>

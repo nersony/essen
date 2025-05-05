@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { getCategories } from "@/app/actions/category-actions"
 import { getProducts } from "@/app/actions/product-actions"
 import type { Category, Product } from "@/lib/db/schema"
+
+// Add this import at the top of the file
+import { CustomRangeSlider } from "@/components/ui/custom-range-slider"
 
 export function ProductFilters() {
   const router = useRouter()
@@ -87,13 +89,34 @@ export function ProductFilters() {
 
       // Set initial price range based on product prices
       if (productsData.length > 0) {
-        const prices = productsData.map((p) => p.price)
-        const minPrice = Math.floor(Math.min(...prices))
-        const maxPrice = Math.ceil(Math.max(...prices))
+        const prices = productsData
+          .map((p) => {
+            // Check if product has variants with combinations
+            if (p.variants && p.variants.length > 0 && p.variants[0].combinations) {
+              // Get prices from in-stock combinations
+              const combinationPrices = p.variants[0].combinations
+                .filter((c) => c.inStock)
+                .map((c) => c.price)
+                .filter((price) => typeof price === "number" && !isNaN(price) && price > 0)
 
-        // Only update if not already set from URL params
-        if (priceRange[0] === 0 && priceRange[1] === 5000) {
-          setPriceRange([minPrice, maxPrice])
+              // Return the minimum price if available
+              if (combinationPrices.length > 0) {
+                return Math.min(...combinationPrices)
+              }
+            }
+            // Fall back to the base price if available
+            return p.price || 0
+          })
+          .filter((price) => price > 0)
+
+        if (prices.length > 0) {
+          const minPrice = Math.floor(Math.min(...prices))
+          const maxPrice = Math.ceil(Math.max(...prices))
+
+          // Only update if not already set from URL params
+          if (priceRange[0] === 0 && priceRange[1] === 5000) {
+            setPriceRange([minPrice, maxPrice])
+          }
         }
       }
 
@@ -198,7 +221,7 @@ export function ProductFilters() {
       <div>
         <h3 className="text-lg font-medium mb-2">Price Range</h3>
         <div className="px-2">
-          <Slider
+          <CustomRangeSlider
             defaultValue={priceRange}
             min={0}
             max={5000}
