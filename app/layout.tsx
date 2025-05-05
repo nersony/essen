@@ -3,11 +3,9 @@ import type { Metadata } from "next"
 import { Playfair_Display, Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { ScrollToTop } from "@/components/scroll-to-top"
 import { Toaster } from "@/components/ui/toaster"
-import { Analytics } from "@/components/analytics"
+import { SessionProvider } from "@/components/session-provider"
+import { CartProvider } from "@/context/cart-context"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -109,15 +107,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${playfair.variable} ${inter.variable} font-sans`} suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <ScrollToTop />
-          <Header />
-          <main>{children}</main>
-          <Footer />
-          <Toaster />
-          {/* Add Umami Analytics - replace with your website ID and URL */}
-          <Analytics />
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <CartProvider>
+              {children}
+              <Toaster />
+            </CartProvider>
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

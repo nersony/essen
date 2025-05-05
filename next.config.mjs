@@ -22,6 +22,15 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ['dev-essen.xyzap.site'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'dev-essen.xyzap.site',
+        port: '3002',
+        pathname: '/uploads/**',
+      },
+    ],
   },
   experimental: {
     webpackBuildWorker: true,

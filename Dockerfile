@@ -20,9 +20,8 @@ RUN \
 COPY . .
 
 # Environment variables (can be overridden by CapRover)
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3001
+ENV PORT=3002
 ENV HOSTNAME="0.0.0.0"
 
 # Create non-root user
@@ -33,7 +32,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 USER nextjs
 
 # Expose app port
-EXPOSE 3001
+EXPOSE 3002
 
 # Runtime build + start command
 CMD ["sh", "-c", "npm run build && npm run start"]
