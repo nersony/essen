@@ -38,7 +38,6 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
-  unstable_excludeFiles: ['**/node_modules/**'], // Prevents unwanted files from being bundled
 };
 
 // Merge userConfig if available

@@ -12,14 +12,15 @@ COPY package.json ./
 COPY package-lock.json ./
 COPY pnpm-lock.yaml ./
 
-# Install dependencies based on lockfile presence
-RUN if [ -f package-lock.json ]; then \
-      npm ci --legacy-peer-deps; \
-    elif [ -f pnpm-lock.yaml ]; then \
-      npm install -g pnpm && pnpm install --no-frozen-lockfile; \
-    else \
-      npm install --legacy-peer-deps; \
-    fi
+# Install pnpm and install dependencies based on lockfile presence
+RUN corepack enable && corepack prepare pnpm@latest --activate && \
+  if [ -f pnpm-lock.yaml ]; then \
+    pnpm install --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then \
+    npm ci --legacy-peer-deps; \
+  else \
+    npm install --legacy-peer-deps; \
+  fi
 
 # Copy application code
 COPY . .
@@ -43,4 +44,4 @@ USER nextjs
 EXPOSE 3003
 
 # Build and run the application
-CMD ["sh", "-c", "npm run build && npm run start"]
+CMD ["sh", "-c", "pnpm run build && pnpm run start"]
