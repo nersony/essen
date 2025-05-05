@@ -43,22 +43,24 @@ export default function ShowroomPage() {
             <section className="relative h-[50vh] overflow-hidden">
                 <div className="absolute inset-0 w-full h-full bg-black">
                     <div className="relative w-full h-full">
-                        <iframe
-                            src="https://www.youtube.com/embed/vLKjaKlnhnQ?autoplay=1&mute=1&loop=1&playlist=vLKjaKlnhnQ&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1&playsinline=1&enablejsapi=0&origin=https://essen.sg"
-                            title="ESSEN Furniture Showroom Video"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        <video
+                            src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
                             className="absolute w-full h-full object-cover"
                             style={{
                                 width: "100%",
-                                height: "calc(100% + 120px)" /* Extend beyond container to hide controls */,
+                                height: "calc(100% + 120px)", // Extend beyond container to hide any controls space
                                 objectFit: "cover",
                                 pointerEvents: "none",
-                                top: "-60px" /* Shift up to hide top controls */,
+                                top: "-60px", // Shift upward to align visual positioning
                                 left: "0",
                                 border: "none",
+                                position: "absolute",
                             }}
-                            frameBorder="0"
-                        ></iframe>
+                        />
                     </div>
                     <div className="absolute inset-0 bg-black/50 z-10" />
                 </div>

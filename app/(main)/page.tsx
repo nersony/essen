@@ -4,11 +4,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Star, MapPin, Phone, CalendarClock } from "lucide-react"
 import { GoogleReviewsSection } from "@/components/google-reviews-section"
 import { SimplifiedContactForm } from "@/components/simplified-contact-form"
-<<<<<<< HEAD:app/page.tsx
-import { YouTubeBackground } from "@/components/youtube-background"
+import { VideoBackground } from "@/components/video-background"
 import { TrackClick } from "@/components/track-click" // Add this import
 import type { Metadata } from "next"
 import { Carousel, CarouselContent, CarouselDots, CarouselItem } from "@/components/ui/carousel"
+import { getProducts } from "@/app/actions/product-actions"
 
 export const metadata: Metadata = {
   title: "ESSEN | Your Essential Living Expert in Singapore",
@@ -73,9 +73,6 @@ export const metadata: Metadata = {
     }),
   },
 }
-=======
-import { getProducts } from "@/app/actions/product-actions"
->>>>>>> test:app/(main)/page.tsx
 
 // Add this function to get the formatted price for a product
 function getFormattedPrice(product) {
@@ -150,20 +147,23 @@ export default async function Home() {
   const featuredProducts =
     weeklyBestSellers.length > 0
       ? weeklyBestSellers.map((product) => ({
-          id: product.id,
-          name: product.name,
-          image: product.images[0] || "/placeholder.svg?height=400&width=400",
-          price: getFormattedPrice(product),
-          category: product.category,
-          href: `/products/${product.slug}`,
-        }))
+        id: product.id,
+        name: product.name,
+        image: product.images[0] || "/placeholder.svg?height=400&width=400",
+        price: getFormattedPrice(product),
+        category: product.category,
+        href: `/products/${product.slug}`,
+      }))
       : fallbackProducts
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
       <section className="relative h-[80vh] overflow-hidden">
-        <YouTubeBackground videoId="vLKjaKlnhnQ" className="absolute inset-0" />
+        <VideoBackground
+          videoSrc="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
+          className="absolute inset-0"
+        />
         <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white pt-16">
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl uppercase">Giving You The Power</h1>
           <p className="mt-4 text-2xl sm:text-3xl md:text-4xl uppercase">To Transform Your Home</p>
@@ -220,16 +220,16 @@ export default async function Home() {
           </div>
 
           {/* Desktop Grid (visible on medium and larger screens) */}
-          <div className="hidden md:grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className={`hidden md:grid gap-6 ${getGridColumns(featuredProducts.length)}`}>
             {featuredProducts.map((product) => (
-              <div key={product.id} className="bg-white">
+              <Link href={product.href} key={product.id} className="bg-white group w-full max-w-xs">
                 <div className="aspect-square overflow-hidden">
                   <Image
                     src={product.image || "/placeholder.svg"}
                     alt={product.name}
                     width={400}
                     height={400}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
                   />
                 </div>
                 <div className="p-4 text-center">
@@ -237,12 +237,12 @@ export default async function Home() {
                   <p className="text-sm text-muted-foreground">{product.category}</p>
                   <p className="text-sm font-medium mt-1">{product.price}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="mt-12 text-center">
             <TrackClick eventName="cta_click" eventData={{ location: "weekly_best_sellers", cta_text: "VIEW MORE" }}>
-              <Link href="/visit-us" className="essen-button-primary">
+              <Link href="/products" className="essen-button-primary">
                 VIEW MORE
               </Link>
             </TrackClick>
@@ -329,47 +329,6 @@ export default async function Home() {
         </div>
       </section>
 
-<<<<<<< HEAD:app/page.tsx
-=======
-      {/* Weekly Best Sellers */}
-      <section className="py-16 bg-secondary">
-        <div className="container">
-          <div className="essen-section-subtitle">YOUR ESSENTIAL LIVING EXPERT</div>
-          <h2 className="essen-section-title mb-12">WEEKLY BEST SELLERS</h2>
-
-          {/* Centered product grid */}
-          <div className="flex justify-center">
-            <div className={`grid gap-6 ${getGridColumns(featuredProducts.length)}`}>
-              {featuredProducts.map((product) => (
-                <Link href={product.href} key={product.id} className="bg-white group w-full max-w-xs">
-                  <div className="aspect-square overflow-hidden">
-                    <Image
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      width={400}
-                      height={400}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="p-4 text-center">
-                    <h3 className="font-medium">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground">{product.category}</p>
-                    <p className="text-sm font-medium mt-1">{product.price}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-12 text-center">
-            <Link href="/products" className="essen-button-primary">
-              VIEW MORE
-            </Link>
-          </div>
-        </div>
-      </section>
-
->>>>>>> test:app/(main)/page.tsx
       {/* In-Store Perks Section */}
       <section className="py-16">
         <div className="container">

@@ -1,14 +1,13 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import YouTube from "react-youtube"
+import { useEffect, useRef, useState } from "react"
 
-interface YouTubeBackgroundProps {
-  videoId: string
+interface VideoBackgroundProps {
+  videoSrc: string
   className?: string
 }
 
-export function YouTubeBackground({ videoId, className = "" }: YouTubeBackgroundProps) {
+export function VideoBackground({ videoSrc, className = "" }: VideoBackgroundProps) {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -48,7 +47,13 @@ export function YouTubeBackground({ videoId, className = "" }: YouTubeBackground
         backgroundColor: "#000",
       }}
     >
-      <div
+      <video
+        src={videoSrc}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
         style={{
           position: "absolute",
           top: "50%",
@@ -56,42 +61,10 @@ export function YouTubeBackground({ videoId, className = "" }: YouTubeBackground
           transform: "translate(-50%, -50%)",
           width: `${dimensions.width}px`,
           height: `${dimensions.height}px`,
+          objectFit: "cover",
           pointerEvents: "none",
         }}
-      >
-        {dimensions.width > 0 && (
-          <YouTube
-            videoId={videoId}
-            opts={{
-              width: dimensions.width.toString(),
-              height: dimensions.height.toString(),
-              playerVars: {
-                autoplay: 1,
-                mute: 1,
-                loop: 1,
-                controls: 0,
-                showinfo: 0,
-                rel: 0,
-                modestbranding: 1,
-                playsinline: 1,
-                enablejsapi: 1,
-                playlist: videoId, // required for loop
-              },
-            }}
-            onReady={(event) => {
-              const player = event.target
-              player.mute()
-              player.playVideo()
-            }}
-            onEnd={(event) => {
-              // Additional safety: force restart on end
-              event.target.seekTo(0)
-              event.target.playVideo()
-            }}
-            className="youtube-player"
-          />
-        )}
-      </div>
+      />
     </div>
   )
 }
