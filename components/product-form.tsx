@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/use-toast"
 import type { ProductFormData, ProductVariant, MaterialOption, DimensionOption, AddOnOption } from "@/lib/db/schema"
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions/product-actions"
 import { getCategories } from "@/app/actions/category-actions"
+import { PLACEHOLDER_IMAGE_URL } from "@/lib/excel-utils"
 
 // Define the form schema
 const productFormSchema = z.object({
@@ -93,7 +94,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       category: "",
       description: "",
       features: [""],
-      images: ["/placeholder.svg?height=600&width=600"],
+      images: [PLACEHOLDER_IMAGE_URL],
       careInstructions: [""],
       deliveryTime: "2-3 weeks",
       returnPolicy: "30-day return policy",
@@ -484,7 +485,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
 
         // Remove placeholder if it's the only image
         const imagesToUpdate =
-          currentImages.length === 1 && currentImages[0].includes("/placeholder.svg") ? [] : currentImages
+          currentImages.length === 1 &&
+          (currentImages[0].includes("/placeholder.svg") || currentImages[0] === PLACEHOLDER_IMAGE_URL)
+            ? []
+            : currentImages
 
         const updatedImages = [...imagesToUpdate, ...validImages]
 
@@ -761,7 +765,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                     <div key={index} className="relative group">
                       <div className="aspect-square relative border rounded-md overflow-hidden">
                         <img
-                          src={image || "/placeholder.svg"}
+                          src={image || PLACEHOLDER_IMAGE_URL}
                           alt={`Product image ${index + 1}`}
                           className="object-cover w-full h-full"
                         />
@@ -774,10 +778,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                           onClick={() => {
                             const currentImages = form.getValues("images")
                             const updatedImages = currentImages.filter((_, i) => i !== index)
-                            form.setValue(
-                              "images",
-                              updatedImages.length > 0 ? updatedImages : ["/placeholder.svg?height=600&width=600"],
-                            )
+                            form.setValue("images", updatedImages.length > 0 ? updatedImages : [PLACEHOLDER_IMAGE_URL])
                           }}
                         >
                           <Trash2 className="h-4 w-4" />

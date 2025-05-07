@@ -109,10 +109,8 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${inter.variable} font-sans`} suppressHydrationWarning>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <CartProvider>
-              {children}
-              <Toaster />
-            </CartProvider>
+            {children}
+            <Toaster />
           </ThemeProvider>
         </SessionProvider>
       </body>

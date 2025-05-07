@@ -21,33 +21,23 @@ export function isDigitalOceanImage(url: string): boolean {
 
 // Validate image URLs
 export async function validateImageUrls(urls: string[]): Promise<{ valid: boolean; message?: string }> {
-  try {
-    if (!urls || urls.length === 0) {
-      return { valid: false, message: "No image URLs provided" }
+  // Check if all URLs are valid
+  for (const url of urls) {
+    // Allow the placeholder image URL
+    if (url === "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png") {
+      continue
     }
 
-    // Filter out empty URLs
-    const filteredUrls = urls.filter((url) => url && url.trim() !== "")
-
-    if (filteredUrls.length === 0) {
-      return { valid: false, message: "No valid image URLs provided" }
-    }
-
-    // Check each URL
-    for (const url of filteredUrls) {
-      if (!validateImageUrl(url)) {
-        return {
-          valid: false,
-          message: `Invalid image URL: ${url}. URLs must be local paths or from approved domains.`,
-        }
+    // Check if URL is from DigitalOcean Spaces
+    if (!url.includes("digitaloceanspaces.com")) {
+      return {
+        valid: false,
+        message: `Invalid image URL: ${url}. URLs must be local paths or from approved domains.`,
       }
     }
-
-    return { valid: true }
-  } catch (error) {
-    console.error("Error validating image URLs:", error)
-    return { valid: false, message: "Error validating image URLs" }
   }
+
+  return { valid: true }
 }
 
 // Helper function to validate a single image URL

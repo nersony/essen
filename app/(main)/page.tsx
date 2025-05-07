@@ -164,7 +164,7 @@ export default async function Home() {
           videoSrc="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
           className="absolute inset-0"
         />
-        <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white pt-16">
+        {/* <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white pt-16">
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl uppercase">Giving You The Power</h1>
           <p className="mt-4 text-2xl sm:text-3xl md:text-4xl uppercase">To Transform Your Home</p>
           <p className="mt-4 text-xl max-w-xl">Just 5 minutes from downtown Singapore</p>
@@ -182,7 +182,7 @@ export default async function Home() {
               This Weekend Only: Special Promotions In-Store Purchases
             </div>
           </div>
-        </div>
+        </div> */}
       </section>
 
       {/* Weekly Best Sellers */}

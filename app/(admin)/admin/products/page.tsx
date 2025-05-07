@@ -1,112 +1,146 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { getProducts } from "@/app/actions/product-actions"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { PlusCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Pencil, Plus, Search, FileUp } from "lucide-react"
+import { getProducts } from "@/app/actions/product-actions"
+import type { Product } from "@/lib/db/schema"
 
-// Import the image utility at the top of the file
-import { ensureCorrectImagePath } from "@/lib/image-utils"
+export default function ProductsPage() {
+  const router = useRouter()
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
 
-// Helper function to get the formatted price
-function getFormattedPrice(product: any) {
-  // Check if the product has variants with combinations
-  if (
-    product.variants &&
-    product.variants.length > 0 &&
-    product.variants[0].combinations &&
-    product.variants[0].combinations.length > 0
-  ) {
-    // Filter out combinations that are in stock and have valid numeric prices
-    const inStockCombinations = product.variants[0].combinations.filter(
-      (combo: any) => combo.inStock && !isNaN(Number.parseFloat(combo.price)) && Number.parseFloat(combo.price) > 0,
-    )
-
-    if (inStockCombinations.length > 0) {
-      // Get the minimum price from in-stock combinations
-      const prices = inStockCombinations.map((combo: any) => Number.parseFloat(combo.price))
-      const minPrice = Math.min(...prices)
-
-      if (!isNaN(minPrice) && minPrice > 0) {
-        return `From $${minPrice.toFixed(2)}`
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const productsData = await getProducts()
+        setProducts(productsData)
+      } catch (error) {
+        console.error("Failed to fetch products:", error)
+      } finally {
+        setLoading(false)
       }
     }
-  }
 
-  // Fallback to base price if available and valid
-  if (!isNaN(Number.parseFloat(product.price)) && Number.parseFloat(product.price) > 0) {
-    return `$${Number.parseFloat(product.price).toFixed(2)}`
-  }
+    fetchProducts()
+  }, [])
 
-  // If no valid price is found
-  return "Price upon request"
-}
-
-export default async function AdminProductsPage() {
-  const products = await getProducts()
+  // Filter products based on search term
+  const filteredProducts = products.filter(
+    (product) =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold">Products</h1>
-        <Button asChild>
-          <Link href="/admin/products/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Product
-          </Link>
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button asChild variant="outline" className="flex items-center gap-2">
+            <Link href="/admin/products/import">
+              <FileUp className="h-4 w-4" />
+              Import Products
+            </Link>
+          </Button>
+          <Button asChild className="flex items-center gap-2">
+            <Link href="/admin/products/new">
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      {products.length > 0 ? (
-        <div className="border rounded-md">
-          <div className="grid grid-cols-6 gap-4 p-4 font-medium border-b">
-            <div>Image</div>
-            <div>Name</div>
-            <div>Category</div>
-            <div>Price</div>
-            <div>Status</div>
-            <div>Actions</div>
+      <Card className="mb-8">
+        <CardHeader className="pb-3">
+          <CardTitle>Product Management</CardTitle>
+          <CardDescription>Manage your product catalog. Add, edit, or remove products from your store.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search products..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
+        </CardContent>
+      </Card>
 
-          {products.map((product) => (
-            <div key={product.id} className="grid grid-cols-6 gap-4 p-4 items-center border-b last:border-0">
-              <div className="w-12 h-12 relative rounded overflow-hidden">
-                {/* Update the image source in the product list */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <div className="h-48 bg-gray-200 rounded-t-lg" />
+              <CardContent className="p-4">
+                <div className="h-6 bg-gray-200 rounded mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+                <div className="h-4 bg-gray-200 rounded mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-semibold mb-2">No products found</h2>
+          <p className="text-muted-foreground mb-6">
+            {searchTerm ? `No products match your search for "${searchTerm}"` : "You haven't added any products yet"}
+          </p>
+          <Button asChild>
+            <Link href="/admin/products/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Your First Product
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => (
+            <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <div className="aspect-video relative overflow-hidden bg-gray-100">
                 <img
-                  src={ensureCorrectImagePath(product.images[0] || "/placeholder.svg?height=48&width=48")}
+                  src={product.images?.[0] || "/placeholder.svg?height=400&width=600"}
                   alt={product.name}
                   className="object-cover w-full h-full"
                 />
+                {product.isWeeklyBestSeller && (
+                  <Badge className="absolute top-2 right-2 bg-yellow-500">Best Seller</Badge>
+                )}
               </div>
-              <div>{product.name}</div>
-              <div>{product.category}</div>
-              <div>{getFormattedPrice(product)}</div>
-              <div>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${product.inStock ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                >
-                  {product.inStock ? "In Stock" : "Out of Stock"}
-                </span>
-              </div>
-              <div className="flex space-x-2">
-                <Link href={`/admin/products/${product.id}`} className="text-sm text-primary hover:underline">
-                  Edit
-                </Link>
-                <Link
-                  href={`/products/${product.slug}`}
-                  className="text-sm text-muted-foreground hover:underline"
-                  target="_blank"
-                >
-                  View
-                </Link>
-              </div>
-            </div>
+              <CardContent className="p-4">
+                <h2 className="text-xl font-semibold mb-1 line-clamp-1">{product.name}</h2>
+                <p className="text-sm text-muted-foreground mb-2">{product.category}</p>
+                <p className="text-sm line-clamp-2 mb-3">{product.description}</p>
+                <div className="flex justify-between items-center">
+                  <Badge variant={product.inStock ? "default" : "outline"} className="capitalize">
+                    {product.inStock ? "In Stock" : "Out of Stock"}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/admin/products/${product.id}`)}
+                    className="flex items-center"
+                  >
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 border rounded-md">
-          <p className="text-muted-foreground mb-4">No products found.</p>
-          <Button asChild>
-            <Link href="/admin/products/new">Add your first product</Link>
-          </Button>
         </div>
       )}
     </div>
