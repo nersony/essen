@@ -1,258 +1,202 @@
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Tag } from "lucide-react"
-import { PromoHero } from "@/components/promo-hero"
-import { PromoCard } from "@/components/promo-card"
-import { SimplifiedContactForm } from "@/components/simplified-contact-form"
-import { PromoImagePlaceholder } from "@/components/promo-image-placeholder"
+import { Card, CardContent } from "@/components/ui/card"
 import type { Metadata } from "next"
+import styles from "./styles.module.css"
 
 export const metadata: Metadata = {
-  title: "Promotions | Limited Time Furniture Deals",
+  title: "Great Singapore Sale | ESSEN Promotions",
   description:
-    "Explore current promotions and limited-time deals on premium furniture at ESSEN Singapore. Seasonal offers, discounts, and special packages available.",
+    "Enjoy up to 50% off during ESSEN's Great Singapore Sale. Spin the wheel to win exciting prizes, explore exclusive in-store promotions, and transform your home.",
   alternates: {
     canonical: "https://essen.sg/promos",
   },
   openGraph: {
-    title: "Promotions | Limited Time Furniture Deals at ESSEN",
+    title: "Great Singapore Sale | ESSEN Promotions",
     description:
-      "Explore current promotions and limited-time deals on premium furniture at ESSEN Singapore. Seasonal offers, discounts, and special packages available.",
+      "Enjoy up to 50% off during ESSEN's Great Singapore Sale. Spin the wheel to win exciting prizes and explore exclusive in-store promotions.",
     url: "https://essen.sg/promos",
     images: [
       {
-        url: "/images/essen-promos-og.jpg",
+        url: "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Banner1.png",
         width: 1200,
         height: 630,
-        alt: "ESSEN Singapore Promotions",
+        alt: "ESSEN Great Singapore Sale",
       },
     ],
   },
   twitter: {
-    title: "Promotions | Limited Time Furniture Deals at ESSEN",
+    title: "Great Singapore Sale | ESSEN Promotions",
     description:
-      "Explore current promotions and limited-time deals on premium furniture at ESSEN Singapore. Seasonal offers, discounts, and special packages available.",
-    images: ["/images/essen-promos-twitter.jpg"],
+      "Enjoy up to 50% off during ESSEN's Great Singapore Sale. Spin the wheel to win exciting prizes and explore exclusive in-store promotions.",
+    images: ["https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Banner1.png"],
   },
 }
 
 export default function PromosPage() {
-  // Current featured promotion (could be fetched from a CMS in a real implementation)
-  const featuredPromo = {
-    title: "Year-End Clearance Sale",
-    subtitle: "Up to 50% Off Selected Items",
-    description:
-      "Make room for our new 2024 collection with incredible savings on floor models and last season's inventory.",
-    image: "/placeholder.svg?height=600&width=1200",
-    endDate: "2023-12-31", // YYYY-MM-DD format
-    badge: "Limited Time",
-  }
-
-  // Seasonal promotions
-  const seasonalPromos = [
-    {
-      id: 1,
-      title: "Christmas Special",
-      description:
-        "Get a free accent pillow with any sofa purchase. Perfect for adding a festive touch to your living room.",
-      image: "/placeholder.svg?height=300&width=500",
-      validUntil: "December 25, 2023",
-      badge: "Seasonal",
-      color: "bg-red-600",
-    },
-    {
-      id: 2,
-      title: "New Year New Home",
-      description:
-        "Start the new year with a fresh look. 20% off all living room packages when you purchase 3 or more items.",
-      image: "/placeholder.svg?height=300&width=500",
-      validUntil: "January 31, 2024",
-      badge: "Coming Soon",
-      color: "bg-blue-600",
-    },
-  ]
-
-  // Regular promotions
-  const regularPromos = [
-    {
-      id: 1,
-      title: "First-Time Customer Discount",
-      description: "New to ESSEN? Enjoy 10% off on selected items when you visit our showroom.",
-      image: "/placeholder.svg?height=300&width=500",
-      validUntil: "Ongoing",
-      badge: "New Customers",
-    },
-    {
-      id: 2,
-      title: "Refer-a-Friend Program",
-      description: "Refer a friend and both of you will receive $50 off your next purchase of $500 or more.",
-      image: "/placeholder.svg?height=300&width=500",
-      validUntil: "Ongoing",
-      badge: "Referral",
-    },
-    {
-      id: 3,
-      title: "Interior Design Consultation",
-      description:
-        "Book a free 45-minute consultation with our interior design experts to help plan your perfect space.",
-      image: "/placeholder.svg?height=300&width=500",
-      validUntil: "Ongoing",
-      badge: "Service",
-    },
-  ]
-
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section with Current Featured Promotion */}
-      <PromoHero
-        title={featuredPromo.title}
-        subtitle={featuredPromo.subtitle}
-        description={featuredPromo.description}
-        image={featuredPromo.image}
-        endDate={featuredPromo.endDate}
-        badge={featuredPromo.badge}
-      />
+      {/* Hero Banner Section */}
+      <section className="w-full">
+        <div className="relative w-full">
+          <Image
+            src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Banner1.png"
+            alt="ESSEN Great Singapore Sale - Up to 50% OFF"
+            width={1200}
+            height={600}
+            className="w-full h-auto"
+            priority
+          />
+        </div>
+      </section>
 
-      {/* Current Featured Promotion Image */}
+      {/* Spin the Wheel Section */}
       <section className="py-16 bg-white">
         <div className="container">
-          <div className="essen-section-subtitle">FEATURED PROMOTION</div>
-          <h2 className="essen-section-title mb-12">LABOUR DAY SPECIAL</h2>
-          <div className="max-w-3xl mx-auto">
-            <PromoImagePlaceholder
-              imageUrl="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202025-04-16%20at%205.40.41%20PM-exvVJgIhXgUo28drdS0FUqakJbashS.jpeg"
-              altText="Labour Day Sale - Bathroom Shower Set $399, was $699. Receive $100 ESSEN voucher."
-              linkUrl="/visit-us"
-              width={800}
-              height={800}
-            />
-            <div className="mt-6 text-center">
-              <p className="text-muted-foreground mb-4">
-                Visit our showroom to take advantage of this limited-time offer. Valid until May 5, 2025.
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="flex justify-center md:justify-end">
+              <div className="relative w-full max-w-[600px] animate-spin-slow">
+                <Image
+                  src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Wheel.png"
+                  alt="Spin the Wheel & Win Prizes"
+                  width={800}
+                  height={800}
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl md:text-3xl font-bold">🎡 Spin the Wheel & Win!</h2>
+              <p className="text-lg">
+                Make ANY PURCHASE at Essen and get a chance to spin the wheel for exciting rewards!
               </p>
-              <Button asChild>
-                <Link href="/visit-us">Claim This Offer</Link>
-              </Button>
+              <p className="text-lg">
+                Stand to win instant vouchers, exclusive goodie bags, stylish bathroom accessories, and more.
+              </p>
+              <p className="text-lg font-semibold">
+                💥 Spend $5,000 or more to unlock our Premium Prize Wheel — with chances to win up to $500 OFF!
+              </p>
+              <p className="text-sm text-muted-foreground italic">
+                *Essen reserves the right to determine the prize based on stock.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Seasonal Promotions */}
-      <section className="py-16">
-        <div className="container">
-          <div className="essen-section-subtitle">LIMITED TIME OFFERS</div>
-          <h2 className="essen-section-title mb-12">SEASONAL PROMOTIONS</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {seasonalPromos.map((promo) => (
-              <PromoCard
-                key={promo.id}
-                title={promo.title}
-                description={promo.description}
-                image={promo.image}
-                validUntil={promo.validUntil}
-                badge={promo.badge}
-                color={promo.color}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Regular Promotions */}
+      {/* Product Categories Section */}
       <section className="py-16 bg-secondary">
         <div className="container">
-          <div className="essen-section-subtitle">ALWAYS AVAILABLE</div>
-          <h2 className="essen-section-title mb-12">ONGOING PROMOTIONS</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {regularPromos.map((promo) => (
-              <PromoCard
-                key={promo.id}
-                title={promo.title}
-                description={promo.description}
-                image={promo.image}
-                validUntil={promo.validUntil}
-                badge={promo.badge}
-                compact
-              />
-            ))}
-          </div>
-        </div>
-      </section>
+          <h2 className={styles.promoTitle}>Your One-Stop for Home Essentials</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Home Living */}
+            <div>
+              <Card className="overflow-hidden border-0 shadow-md h-full">
+                <div className="relative aspect-square">
+                  <Image
+                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/home-living.jpg"
+                    alt="Home Living"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <CardContent className="p-4 text-center">
+                  <h3 className="text-xl font-bold text-primary">HOME LIVING</h3>
+                </CardContent>
+              </Card>
+            </div>
 
-      {/* WhatsApp Notification Signup */}
-      <section className="py-16 bg-primary text-primary-foreground">
-        <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-6">Never Miss a Promotion</h2>
-            <p className="text-xl mb-8">
-              Sign up to receive exclusive promotions and be the first to know about our special offers.
-            </p>
-            <div className="bg-white p-6 rounded-lg text-foreground">
-              <SimplifiedContactForm />
+            {/* Kitchen */}
+            <div>
+              <Card className="overflow-hidden border-0 shadow-md h-full">
+                <div className="relative aspect-square">
+                  <Image
+                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/kitchen.png"
+                    alt="Kitchen"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <CardContent className="p-4 text-center">
+                  <h3 className="text-xl font-bold text-primary">KITCHEN</h3>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Bathroom */}
+            <div>
+              <Card className="overflow-hidden border-0 shadow-md h-full">
+                <div className="relative aspect-square">
+                  <Image
+                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/bathroom.jpg"
+                    alt="Bathroom"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <CardContent className="p-4 text-center">
+                  <h3 className="text-xl font-bold text-primary">BATHROOM</h3>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Lighting */}
+            <div>
+              <Card className="overflow-hidden border-0 shadow-md h-full">
+                <div className="relative aspect-square">
+                  <Image
+                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/lighting.png"
+                    alt="Lighting"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <CardContent className="p-4 text-center">
+                  <h3 className="text-xl font-bold text-primary">LIGHTING</h3>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-16">
-        <div className="container">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold mb-8 text-center">Frequently Asked Questions</h2>
-            <div className="space-y-6">
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-medium mb-2">How do I redeem a promotion?</h3>
-                <p className="text-muted-foreground">
-                  Simply visit our showroom and mention the promotion to our staff. For online exclusive promotions,
-                  you'll need to provide the coupon code at checkout.
-                </p>
-              </div>
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-medium mb-2">Can promotions be combined?</h3>
-                <p className="text-muted-foreground">
-                  Unless specifically stated, promotions cannot be combined with other offers or discounts.
-                </p>
-              </div>
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-medium mb-2">Do promotions apply to all products?</h3>
-                <p className="text-muted-foreground">
-                  Most promotions apply to regular-priced items only, unless otherwise specified. Clearance items,
-                  display models, and custom orders may be excluded.
-                </p>
-              </div>
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-medium mb-2">How often do you run promotions?</h3>
-                <p className="text-muted-foreground">
-                  We run seasonal promotions throughout the year, with special offers during major holidays. We also
-                  have ongoing promotions available year-round.
-                </p>
-              </div>
-            </div>
+      {/* In-Store Promotions Section */}
+      <section className="py-16 bg-white">
+        <div className="container max-w-4xl mx-auto text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-6">🛋️ Exclusive In-Store Promotions</h2>
+          <p className="text-lg mb-4">
+            Enjoy up to 50% off selected items, special deals on sofas, sinks, shower sets, and more!
+          </p>
+          <p className="text-lg mb-6">
+            Come down to our showroom and speak to our team to discover what's in store — only during this Great
+            Singapore Sale season.
+          </p>
+          <p className="text-xl font-semibold">📍 Visit us today and don't miss out!</p>
+          <div className="mt-8">
+            <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+              <Link
+                href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20would%20like%20to%20book%20an%20appointment%20for%20the%20Great%20Singapore%20Sale%20promotion."
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Book an Appointment via WhatsApp
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-secondary">
-        <div className="container">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <div className="flex items-center justify-center mb-4">
-              <Tag className="h-12 w-12 text-primary" />
-            </div>
-            <h2 className="text-3xl font-bold">Ready to Save?</h2>
-            <p className="text-xl text-muted-foreground">
-              Visit our showroom today to take advantage of these exclusive offers and transform your home for less.
-            </p>
-            <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="essen-button-primary">
-                <Link href="/visit-us">Visit Showroom</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/contact">Contact Us</Link>
-              </Button>
-            </div>
-          </div>
+      <section className="py-16 bg-primary text-white">
+        <div className="container max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">READY TO TRANSFORM YOUR HOME?</h2>
+          <p className="text-xl mb-8">
+            Visit our showroom today to experience our furniture collection in person and take advantage of exclusive
+            in-store offers.
+          </p>
+          <Button asChild size="lg" variant="outline" className={styles.ctaButton}>
+            <Link href="/visit-us">GET DIRECTIONS</Link>
+          </Button>
         </div>
       </section>
     </div>

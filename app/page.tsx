@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Star, MapPin, Phone, CalendarClock } from "lucide-react"
 import { GoogleReviewsSection } from "@/components/google-reviews-section"
 import { SimplifiedContactForm } from "@/components/simplified-contact-form"
-import { YouTubeBackground } from "@/components/youtube-background"
+import { VideoBackground } from "@/components/video-background"
 import { TrackClick } from "@/components/track-click" // Add this import
 import type { Metadata } from "next"
 import { Carousel, CarouselContent, CarouselDots, CarouselItem } from "@/components/ui/carousel"
@@ -113,8 +113,11 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
       <section className="relative h-[80vh] overflow-hidden">
-        <YouTubeBackground videoId="vLKjaKlnhnQ" className="absolute inset-0" />
-        <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white pt-16">
+      <VideoBackground
+          videoSrc="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
+          className="absolute inset-0"
+        />
+        {/* <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white pt-16">
           <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl uppercase">Giving You The Power</h1>
           <p className="mt-4 text-2xl sm:text-3xl md:text-4xl uppercase">To Transform Your Home</p>
           <p className="mt-4 text-xl max-w-xl">Just 5 minutes from downtown Singapore</p>
@@ -136,7 +139,7 @@ export default function Home() {
               This Weekend Only: Special Promotions In-Store Purchases
             </div>
           </div>
-        </div>
+        </div> */}
       </section>
 
       {/* Weekly Best Sellers */}
