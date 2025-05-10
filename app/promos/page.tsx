@@ -1,69 +1,105 @@
+"use client"
+
+import { useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import type { Metadata } from "next"
+import { TrackClick } from "@/components/track-click" 
+import { useUmami } from "@/hooks/use-umami"
 import styles from "./styles.module.css"
 
-export const metadata: Metadata = {
-  title: "Great Singapore Sale | ESSEN Promotions",
-  description:
-    "Enjoy up to 50% off during ESSEN's Great Singapore Sale. Spin the wheel to win exciting prizes, explore exclusive in-store promotions, and transform your home.",
-  alternates: {
-    canonical: "https://essen.sg/promos",
-  },
-  openGraph: {
-    title: "Great Singapore Sale | ESSEN Promotions",
-    description:
-      "Enjoy up to 50% off during ESSEN's Great Singapore Sale. Spin the wheel to win exciting prizes and explore exclusive in-store promotions.",
-    url: "https://essen.sg/promos",
-    images: [
-      {
-        url: "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Banner1.png",
-        width: 1200,
-        height: 630,
-        alt: "ESSEN Great Singapore Sale",
-      },
-    ],
-  },
-  twitter: {
-    title: "Great Singapore Sale | ESSEN Promotions",
-    description:
-      "Enjoy up to 50% off during ESSEN's Great Singapore Sale. Spin the wheel to win exciting prizes and explore exclusive in-store promotions.",
-    images: ["https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Banner1.png"],
-  },
-}
+// Metadata is handled by a separate file in the client component
+export const dynamic = 'force-dynamic';
 
 export default function PromosPage() {
+  const { trackEvent } = useUmami();
+  
+  // Track page view with additional data
+  useEffect(() => {
+    trackEvent("page_viewed", { 
+      page: "promos", 
+      campaign: "great_singapore_sale", 
+      page_type: "promotional" 
+    });
+  }, [trackEvent]);
+
+  // Track section views using Intersection Observer
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+
+    const sectionIds = [
+      'promo-hero-section', 
+      'spin-wheel-section', 
+      'product-categories-section', 
+      'in-store-promotions-section', 
+      'cta-section'
+    ];
+    
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.id;
+          trackEvent("section_viewed", { section: sectionId, page: "promos" });
+        }
+      });
+    };
+    
+    const observer = new IntersectionObserver(observerCallback, { threshold: 0.3 });
+    
+    sectionIds.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
+    
+    return () => observer.disconnect();
+  }, [trackEvent]);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Banner Section */}
-      <section className="w-full">
+      <section id="promo-hero-section" className="w-full">
         <div className="relative w-full">
-          <Image
-            src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Banner1.png"
-            alt="ESSEN Great Singapore Sale - Up to 50% OFF"
-            width={1200}
-            height={600}
-            className="w-full h-auto"
-            priority
-          />
+          <TrackClick eventName="promo_banner_click" eventData={{ banner: "great_singapore_sale" }}>
+            <Link href="#spin-wheel-section">
+              <Image
+                src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Banner1.png"
+                alt="ESSEN Great Singapore Sale - Up to 50% OFF"
+                width={1200}
+                height={600}
+                className="w-full h-auto"
+                priority
+              />
+            </Link>
+          </TrackClick>
         </div>
       </section>
 
       {/* Spin the Wheel Section */}
-      <section className="py-16 bg-white">
+      <section 
+        id="spin-wheel-section" 
+        className="py-16 bg-white"
+        onMouseEnter={() => trackEvent("content_hover", { 
+          section: "spin_wheel",
+          page: "promos"
+        })}
+      >
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="flex justify-center md:justify-end">
-              <div className="relative w-full max-w-[600px] animate-spin-slow">
-                <Image
-                  src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Wheel.png"
-                  alt="Spin the Wheel & Win Prizes"
-                  width={800}
-                  height={800}
-                />
-              </div>
+              <TrackClick 
+                eventName="promo_element_click" 
+                eventData={{ element: "spin_wheel_image", action: "view" }}
+              >
+                <div className="relative w-full max-w-[600px] animate-spin-slow">
+                  <Image
+                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/Wheel.png"
+                    alt="Spin the Wheel & Win Prizes"
+                    width={800}
+                    height={800}
+                  />
+                </div>
+              </TrackClick>
             </div>
             <div className="space-y-4">
               <h2 className="text-2xl md:text-3xl font-bold">🎡 Spin the Wheel & Win!</h2>
@@ -85,83 +121,113 @@ export default function PromosPage() {
       </section>
 
       {/* Product Categories Section */}
-      <section className="py-16 bg-secondary">
+      <section 
+        id="product-categories-section" 
+        className="py-16 bg-secondary"
+      >
         <div className="container">
           <h2 className={styles.promoTitle}>Your One-Stop for Home Essentials</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Home Living */}
-            <div>
-              <Card className="overflow-hidden border-0 shadow-md h-full">
-                <div className="relative aspect-square">
-                  <Image
-                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/home-living.jpg"
-                    alt="Home Living"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="p-4 text-center">
-                  <h3 className="text-xl font-bold text-primary">HOME LIVING</h3>
-                </CardContent>
-              </Card>
-            </div>
+            <TrackClick 
+              eventName="category_click" 
+              eventData={{ category: "home_living", page: "promos" }}
+            >
+              <div>
+                <Card className="overflow-hidden border-0 shadow-md h-full">
+                  <div className="relative aspect-square">
+                    <Image
+                      src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/home-living.jpg"
+                      alt="Home Living"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-4 text-center">
+                    <h3 className="text-xl font-bold text-primary">HOME LIVING</h3>
+                  </CardContent>
+                </Card>
+              </div>
+            </TrackClick>
 
             {/* Kitchen */}
-            <div>
-              <Card className="overflow-hidden border-0 shadow-md h-full">
-                <div className="relative aspect-square">
-                  <Image
-                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/kitchen.png"
-                    alt="Kitchen"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="p-4 text-center">
-                  <h3 className="text-xl font-bold text-primary">KITCHEN</h3>
-                </CardContent>
-              </Card>
-            </div>
+            <TrackClick 
+              eventName="category_click" 
+              eventData={{ category: "kitchen", page: "promos" }}
+            >
+              <div>
+                <Card className="overflow-hidden border-0 shadow-md h-full">
+                  <div className="relative aspect-square">
+                    <Image
+                      src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/kitchen.png"
+                      alt="Kitchen"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-4 text-center">
+                    <h3 className="text-xl font-bold text-primary">KITCHEN</h3>
+                  </CardContent>
+                </Card>
+              </div>
+            </TrackClick>
 
             {/* Bathroom */}
-            <div>
-              <Card className="overflow-hidden border-0 shadow-md h-full">
-                <div className="relative aspect-square">
-                  <Image
-                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/bathroom.jpg"
-                    alt="Bathroom"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="p-4 text-center">
-                  <h3 className="text-xl font-bold text-primary">BATHROOM</h3>
-                </CardContent>
-              </Card>
-            </div>
+            <TrackClick 
+              eventName="category_click" 
+              eventData={{ category: "bathroom", page: "promos" }}
+            >
+              <div>
+                <Card className="overflow-hidden border-0 shadow-md h-full">
+                  <div className="relative aspect-square">
+                    <Image
+                      src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/bathroom.jpg"
+                      alt="Bathroom"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-4 text-center">
+                    <h3 className="text-xl font-bold text-primary">BATHROOM</h3>
+                  </CardContent>
+                </Card>
+              </div>
+            </TrackClick>
 
             {/* Lighting */}
-            <div>
-              <Card className="overflow-hidden border-0 shadow-md h-full">
-                <div className="relative aspect-square">
-                  <Image
-                    src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/lighting.png"
-                    alt="Lighting"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="p-4 text-center">
-                  <h3 className="text-xl font-bold text-primary">LIGHTING</h3>
-                </CardContent>
-              </Card>
-            </div>
+            <TrackClick 
+              eventName="category_click" 
+              eventData={{ category: "lighting", page: "promos" }}
+            >
+              <div>
+                <Card className="overflow-hidden border-0 shadow-md h-full">
+                  <div className="relative aspect-square">
+                    <Image
+                      src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/promo/lighting.png"
+                      alt="Lighting"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardContent className="p-4 text-center">
+                    <h3 className="text-xl font-bold text-primary">LIGHTING</h3>
+                  </CardContent>
+                </Card>
+              </div>
+            </TrackClick>
           </div>
         </div>
       </section>
 
       {/* In-Store Promotions Section */}
-      <section className="py-16 bg-white">
+      <section 
+        id="in-store-promotions-section" 
+        className="py-16 bg-white"
+        onMouseEnter={() => trackEvent("content_hover", { 
+          section: "in_store_promotions",
+          page: "promos"
+        })}
+      >
         <div className="container max-w-4xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-6">🛋️ Exclusive In-Store Promotions</h2>
           <p className="text-lg mb-4">
@@ -173,30 +239,56 @@ export default function PromosPage() {
           </p>
           <p className="text-xl font-semibold">📍 Visit us today and don't miss out!</p>
           <div className="mt-8">
-            <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
-              <Link
-                href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20would%20like%20to%20book%20an%20appointment%20for%20the%20Great%20Singapore%20Sale%20promotion."
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Book an Appointment via WhatsApp
-              </Link>
-            </Button>
+            <TrackClick 
+              eventName="cta_click" 
+              eventData={{ 
+                cta: "book_appointment", 
+                location: "in_store_promotions",
+                method: "whatsapp",
+                page: "promos"
+              }}
+            >
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90">
+                <Link
+                  href="https://wa.me/6560190775?text=Hi%20Essen!%20I%20would%20like%20to%20book%20an%20appointment%20for%20the%20Great%20Singapore%20Sale%20promotion."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Book an Appointment via WhatsApp
+                </Link>
+              </Button>
+            </TrackClick>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary text-white">
+      <section 
+        id="cta-section" 
+        className="py-16 bg-primary text-white"
+        onMouseEnter={() => trackEvent("content_hover", { 
+          section: "cta",
+          page: "promos"
+        })}
+      >
         <div className="container max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">READY TO TRANSFORM YOUR HOME?</h2>
           <p className="text-xl mb-8">
             Visit our showroom today to experience our furniture collection in person and take advantage of exclusive
             in-store offers.
           </p>
-          <Button asChild size="lg" variant="outline" className={styles.ctaButton}>
-            <Link href="/visit-us">GET DIRECTIONS</Link>
-          </Button>
+          <TrackClick 
+            eventName="cta_click" 
+            eventData={{ 
+              cta: "get_directions", 
+              location: "page_bottom",
+              page: "promos"
+            }}
+          >
+            <Button asChild size="lg" variant="outline" className={styles.ctaButton}>
+              <Link href="/visit-us">GET DIRECTIONS</Link>
+            </Button>
+          </TrackClick>
         </div>
       </section>
     </div>
