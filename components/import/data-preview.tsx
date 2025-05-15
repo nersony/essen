@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { CheckCircle2, AlertTriangle, RefreshCw, Undo2 } from "lucide-react"
 import type { ProductFormData } from "@/lib/db/schema"
 
@@ -40,74 +39,24 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
   }, [data])
 
   const [selectedTab, setSelectedTab] = useState<"overview" | "valid" | "invalid">("overview")
-  const [selectedProducts, setSelectedProducts] = useState<Record<number, boolean>>({})
-
-  // Update selected products when product data changes
-  useEffect(() => {
-    setSelectedProducts(
-      productData.reduce(
-        (acc, item, index) => {
-          if (item.valid) {
-            acc[index] = true
-          }
-          return acc
-        },
-        {} as Record<number, boolean>,
-      ),
-    )
-  }, [productData])
 
   // Count valid and invalid products
   const validProducts = productData.filter((item) => item.valid)
   const invalidProducts = productData.filter((item) => !item.valid)
 
-  // Count selected products
-  const selectedCount = Object.values(selectedProducts).filter(Boolean).length
-
   // Count products that were moved from invalid to valid (overwritten)
   const overwrittenCount = productData.filter((item) => item.valid && item.movedFromInvalid).length
 
-  // Handle select all
-  const handleSelectAll = (checked: boolean) => {
-    const newSelected: Record<number, boolean> = {}
-    productData.forEach((item, index) => {
-      if (item.valid) {
-        newSelected[index] = checked
-      }
-    })
-    setSelectedProducts(newSelected)
-  }
-
-  // Handle individual selection
-  const handleSelectProduct = (index: number, checked: boolean) => {
-    setSelectedProducts((prev) => ({
-      ...prev,
-      [index]: checked,
-    }))
-  }
-
   // Handle import
   const handleImport = () => {
-    const selectedProductsData = productData
-      .filter((_, index) => selectedProducts[index])
-      .map((item) => item.processed as ProductFormData)
+    const validProductsData = productData.filter((item) => item.valid).map((item) => item.processed as ProductFormData)
 
     // Check if any products were moved from invalid to valid (overwritten)
-    const hasOverwrittenProducts = productData.some(
-      (item, index) => selectedProducts[index] && item.valid && item.movedFromInvalid,
-    )
+    const hasOverwrittenProducts = productData.some((item) => item.valid && item.movedFromInvalid)
 
-    // Pass the overwrite flag based on whether any selected products were explicitly overwritten
-    onImport(selectedProductsData, hasOverwrittenProducts)
+    // Pass the overwrite flag based on whether any products were explicitly overwritten
+    onImport(validProductsData, hasOverwrittenProducts)
   }
-
-  // Check if all valid products are selected
-  const areAllSelected =
-    validProducts.length > 0 &&
-    validProducts.every((_, index) => {
-      const dataIndex = productData.findIndex((item) => item === validProducts[index])
-      return selectedProducts[dataIndex]
-    })
 
   // Check if a product has a duplicate slug error
   const hasDuplicateSlugError = (errors: string[]): boolean => {
@@ -156,6 +105,61 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
     setProductData(updatedData)
 
     // If we're on the valid tab and this was the last valid product, switch to invalid tab
+    if (selectedTab === "valid" && updatedData.filter((item) => item.valid).length === 0) {
+      setSelectedTab("invalid")
+    }
+  }
+
+  // Handle overwrite all button click
+  const handleOverwriteAll = () => {
+    const updatedData = [...productData]
+
+    // Process each invalid product with duplicate slug error
+    updatedData.forEach((item, index) => {
+      if (!item.valid && hasDuplicateSlugError(item.errors)) {
+        // Store original errors for potential undo
+        item.originalErrors = [...item.errors]
+
+        // Remove the duplicate slug error
+        item.errors = item.errors.filter(
+          (error) => !(error.includes("A product with slug") && error.includes("already exists")),
+        )
+
+        // Mark as valid and as moved from invalid
+        item.valid = item.errors.length === 0
+        item.movedFromInvalid = true
+      }
+    })
+
+    setProductData(updatedData)
+
+    // If we're on the invalid tab and there are no more invalid products, switch to valid tab
+    if (selectedTab === "invalid" && updatedData.filter((item) => !item.valid).length === 0) {
+      setSelectedTab("valid")
+    }
+  }
+
+  // Handle undo all button click
+  const handleUndoAll = () => {
+    const updatedData = [...productData]
+
+    // Process each valid product that was moved from invalid
+    updatedData.forEach((item, index) => {
+      if (item.valid && item.movedFromInvalid) {
+        // Restore original errors
+        if (item.originalErrors) {
+          item.errors = [...item.originalErrors]
+        }
+
+        // Mark as invalid and remove moved flag
+        item.valid = false
+        item.movedFromInvalid = false
+      }
+    })
+
+    setProductData(updatedData)
+
+    // If we're on the valid tab and there are no more valid products, switch to invalid tab
     if (selectedTab === "valid" && updatedData.filter((item) => item.valid).length === 0) {
       setSelectedTab("invalid")
     }
@@ -254,9 +258,6 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
                       <h4 className="text-sm font-medium text-green-800">Ready to Import</h4>
                       <p className="text-sm text-green-700 mt-1">
                         {validProducts.length} product(s) are valid and ready to be imported.
-                        {selectedCount !== validProducts.length && (
-                          <span className="font-medium"> You have selected {selectedCount} product(s) to import.</span>
-                        )}
                         {overwrittenCount > 0 && (
                           <span className="font-medium"> {overwrittenCount} product(s) will be overwritten.</span>
                         )}
@@ -270,28 +271,23 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
 
           <TabsContent value="valid" className="p-0">
             <div className="p-4 border-b flex items-center justify-between bg-slate-50">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="select-all"
-                  checked={areAllSelected}
-                  onCheckedChange={(checked) => handleSelectAll(checked === true)}
-                />
-                <label
-                  htmlFor="select-all"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              <div className="text-sm text-slate-500">{validProducts.length} valid products</div>
+              {validProducts.some((item) => item.movedFromInvalid) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleUndoAll}
+                  className="flex items-center text-amber-600 border-amber-200 hover:bg-amber-50"
                 >
-                  Select All
-                </label>
-              </div>
-              <div className="text-sm text-slate-500">
-                {selectedCount} of {validProducts.length} selected
-              </div>
+                  <Undo2 className="h-3 w-3 mr-1" />
+                  Undo All
+                </Button>
+              )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-100">
-                    <th className="border p-2 text-left w-12"></th>
                     <th className="border p-2 text-left">#</th>
                     <th className="border p-2 text-left">Name</th>
                     <th className="border p-2 text-left">Category</th>
@@ -307,12 +303,6 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
                     const dataIndex = productData.findIndex((d) => d === item)
                     return (
                       <tr key={index} className="hover:bg-slate-50">
-                        <td className="border p-2">
-                          <Checkbox
-                            checked={selectedProducts[dataIndex] || false}
-                            onCheckedChange={(checked) => handleSelectProduct(dataIndex, checked === true)}
-                          />
-                        </td>
                         <td className="border p-2">{index + 1}</td>
                         <td className="border p-2 font-medium">{item.processed.name}</td>
                         <td className="border p-2">{item.processed.category}</td>
@@ -359,6 +349,33 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
           </TabsContent>
 
           <TabsContent value="invalid" className="p-0">
+            <div className="p-4 border-b flex items-center justify-between bg-slate-50">
+              <div className="text-sm text-slate-500">{invalidProducts.length} invalid products</div>
+              <div className="flex gap-2">
+                {invalidProducts.some((item) => hasDuplicateSlugError(item.errors)) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOverwriteAll}
+                    className="flex items-center text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Overwrite All
+                  </Button>
+                )}
+                {validProducts.some((item) => item.movedFromInvalid) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUndoAll}
+                    className="flex items-center text-amber-600 border-amber-200 hover:bg-amber-50"
+                  >
+                    <Undo2 className="h-3 w-3 mr-1" />
+                    Undo All
+                  </Button>
+                )}
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -422,10 +439,10 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
         </Button>
         <Button
           onClick={handleImport}
-          disabled={selectedCount === 0 || isImporting}
+          disabled={validProducts.length === 0 || isImporting}
           className="bg-green-600 hover:bg-green-700"
         >
-          {isImporting ? "Importing..." : `Import ${selectedCount} Products`}
+          {isImporting ? "Importing..." : `Import ${validProducts.length} Products`}
         </Button>
       </CardFooter>
     </Card>

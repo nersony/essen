@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { Trash2, Plus, X } from "lucide-react"
+import { Trash2, Plus, X, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "@/components/ui/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import type { ProductFormData, ProductVariant, MaterialOption, DimensionOption, AddOnOption } from "@/lib/db/schema"
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions/product-actions"
 import { getCategories } from "@/app/actions/category-actions"
@@ -64,6 +72,11 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [confirmSlug, setConfirmSlug] = useState("")
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Default material options
   const defaultMaterialOptions: MaterialOption[] = [
@@ -369,16 +382,31 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
     }
   }
 
+  // Open delete confirmation dialog
+  const openDeleteDialog = () => {
+    setConfirmSlug("")
+    setDeleteError(null)
+    setDeleteDialogOpen(true)
+  }
+
   // Handle product deletion
   const handleDelete = async () => {
     if (!initialData?.id) return
 
+    // Check if the entered slug matches the product slug
+    if (confirmSlug !== initialData.slug) {
+      setDeleteError("The slug you entered does not match the product slug.")
+      return
+    }
+
     setIsDeleting(true)
+    setDeleteError(null)
 
     try {
       const result = await deleteProduct(initialData.id)
 
       if (result.success) {
+        setDeleteDialogOpen(false)
         toast({
           title: "Product deleted",
           description: "Your product has been deleted successfully.",
@@ -386,6 +414,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
         router.push("/admin/products")
         router.refresh()
       } else {
+        setDeleteError(result.message)
         toast({
           title: "Error",
           description: result.message,
@@ -393,9 +422,11 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
         })
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      setDeleteError(errorMessage)
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -1242,8 +1273,13 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
 
         <div className="flex space-x-2">
           {isEditing && (
-            <Button type="button" variant="destructive" onClick={handleDelete} disabled={isDeleting || isSubmitting}>
-              {isDeleting ? "Deleting..." : "Delete Product"}
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={openDeleteDialog}
+              disabled={isDeleting || isSubmitting}
+            >
+              Delete Product
             </Button>
           )}
 
@@ -1252,6 +1288,62 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           </Button>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" /> Confirm Product Deletion
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the product
+              <span className="font-semibold"> {initialData?.name}</span> and remove all associated data.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirm-slug" className="text-sm font-medium">
+                To confirm, type the product slug: <span className="font-bold">{initialData?.slug}</span>
+              </Label>
+              <Input
+                id="confirm-slug"
+                value={confirmSlug}
+                onChange={(e) => setConfirmSlug(e.target.value)}
+                placeholder={initialData?.slug}
+                className={deleteError ? "border-red-500" : ""}
+              />
+              {deleteError && (
+                <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
+                  <AlertTriangle className="h-3 w-3" /> {deleteError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="sm:justify-between">
+            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={confirmSlug !== initialData?.slug || isDeleting}
+              className="gap-1"
+            >
+              {isDeleting ? (
+                <>Deleting...</>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" /> Delete Product
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </form>
   )
 }

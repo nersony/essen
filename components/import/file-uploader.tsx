@@ -132,7 +132,7 @@ export function FileUploader({ onFileSelected, onTemplateDownload, isProcessing,
               </div>
               <div className="space-y-2">
                 <h3 className="text-lg font-medium">
-                  {selectedFile ? selectedFile.name : "Drag & drop your Excel file here"}
+                  {selectedFile ? selectedFile.name : "Drag and drop your Excel file here"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {selectedFile
