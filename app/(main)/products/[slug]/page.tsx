@@ -8,7 +8,7 @@ import Link from "next/link"
 import { getProductBySlug } from "@/app/actions/product-actions"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Clock, RefreshCcw, Shield } from "lucide-react"
+import { Clock, Shield } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
@@ -17,6 +17,7 @@ import type { Product, ProductVariant } from "@/lib/db/schema"
 import { ensureCorrectImagePath } from "@/lib/image-utils"
 // Import React's use function
 import { use } from "react"
+import { toast } from "@/components/ui/use-toast"
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>
@@ -105,29 +106,6 @@ export default function ProductPage({ params }: ProductPageProps) {
     fetchProduct()
   }, [slug, router])
 
-  // Handle variant selection
-  const handleVariantSelect = (variant: ProductVariant) => {
-    setSelectedVariant(variant)
-    setSelectedMaterial(variant.material)
-    setSelectedDimension(variant.dimension)
-
-    // If variant has images, select the first one
-    if (variant.images && variant.images.length > 0) {
-      setSelectedImage(variant.images[0])
-    }
-
-    // Update selected add-ons for this variant
-    if (variant.addOns) {
-      const variantAddOns: Record<string, boolean> = {}
-      variant.addOns.forEach((addon) => {
-        variantAddOns[addon.name] = addon.selected || false
-      })
-      setSelectedAddOns(variantAddOns)
-    } else {
-      setSelectedAddOns({})
-    }
-  }
-
   // Handle material selection
   const handleMaterialSelect = (materialName: string) => {
     setSelectedMaterial(materialName)
@@ -198,6 +176,64 @@ export default function ProductPage({ params }: ProductPageProps) {
     return currentCombination?.inStock ?? true
   }
 
+  // Handle request information
+  const handleRequestInformation = () => {
+    if (!product) return
+
+    try {
+      // Get the current URL for the product page
+      const productUrl = window.location.href
+
+      // Get the selected add-ons
+      const addOns = product.variants?.[0]?.addOns
+        ?.filter((addon) => selectedAddOns[addon.name])
+        .map((addon) => addon.name)
+        .join(", ")
+
+      // Create WhatsApp message with product details
+      const message = `
+*Product Information Request*
+
+I'm interested in the following product:
+
+*Product:* ${product.name}
+*Price:* $${calculateTotalPrice().toFixed(2)}
+${selectedMaterial ? `*Material:* ${selectedMaterial}` : ""}
+${selectedDimension ? `*Dimension:* ${selectedDimension}` : ""}
+${addOns ? `*Add-ons:* ${addOns}` : ""}
+
+*Product Link:* ${productUrl}
+
+Please provide more information about this product.
+`.trim()
+
+      // Encode the message for URL
+      const encodedMessage = encodeURIComponent(message)
+
+      // WhatsApp phone number - replace with your business WhatsApp number
+      const phoneNumber = "6560190775" // Singapore number format
+
+      // Generate WhatsApp URL
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`
+
+      // Open WhatsApp in a new tab
+      window.open(whatsappUrl, "_blank")
+
+      // Show success message
+      toast({
+        title: "Request Sent",
+        description: "WhatsApp is opening with your product inquiry. Please send the message to complete your request.",
+      })
+    } catch (error) {
+      console.error("Error processing request:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again later.",
+        variant: "destructive",
+      })
+    }
+  }
+
   if (isLoading || !product) {
     return (
       <div className="container py-12">
@@ -234,7 +270,9 @@ export default function ProductPage({ params }: ProductPageProps) {
           <div className="aspect-square relative border rounded-md overflow-hidden">
             <Image
               src={ensureCorrectImagePath(
-                selectedImage || product.images[0] || "/placeholder.svg?height=600&width=600",
+                selectedImage ||
+                  product.images[0] ||
+                  "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
               )}
               alt={product.name}
               fill
@@ -254,7 +292,9 @@ export default function ProductPage({ params }: ProductPageProps) {
                   onClick={() => setSelectedImage(image)}
                 >
                   <Image
-                    src={ensureCorrectImagePath(image || "/placeholder.svg?height=150&width=150")}
+                    src={ensureCorrectImagePath(
+                      image || "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
+                    )}
                     alt={`${product.name} - Image ${index + 1}`}
                     fill
                     className="object-cover"
@@ -419,7 +459,9 @@ export default function ProductPage({ params }: ProductPageProps) {
           )}
 
           {/* Request Information Button */}
-          <Button className="w-full mb-6">Request Information</Button>
+          <Button className="w-full mb-6" onClick={handleRequestInformation}>
+            Request Information
+          </Button>
 
           {/* Delivery, Returns, Warranty */}
           <div className="space-y-4 border-t pt-6 mt-6">
@@ -430,14 +472,6 @@ export default function ProductPage({ params }: ProductPageProps) {
                 <p className="text-sm text-muted-foreground">
                   Estimated delivery time: {product.deliveryTime || "2-3 weeks"}
                 </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <RefreshCcw className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-medium">Returns</h3>
-                <p className="text-sm text-muted-foreground">{product.returnPolicy || "30-day return policy"}</p>
               </div>
             </div>
 

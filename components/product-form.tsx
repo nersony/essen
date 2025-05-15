@@ -20,7 +20,9 @@ import { toast } from "@/components/ui/use-toast"
 import type { ProductFormData, ProductVariant, MaterialOption, DimensionOption, AddOnOption } from "@/lib/db/schema"
 import { createProduct, updateProduct, deleteProduct } from "@/app/actions/product-actions"
 import { getCategories } from "@/app/actions/category-actions"
-import { PLACEHOLDER_IMAGE_URL } from "@/lib/excel-utils"
+
+// Define the placeholder image URL
+const PLACEHOLDER_IMAGE_URL = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
 
 // Define the form schema
 const productFormSchema = z.object({
@@ -35,7 +37,6 @@ const productFormSchema = z.object({
   images: z.array(z.string()),
   careInstructions: z.array(z.string()).optional(),
   deliveryTime: z.string().optional(),
-  returnPolicy: z.string().optional(),
   warranty: z.string().optional(),
   inStock: z.boolean().default(true),
   isWeeklyBestSeller: z.boolean().default(false),
@@ -97,7 +98,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       images: [PLACEHOLDER_IMAGE_URL],
       careInstructions: [""],
       deliveryTime: "2-3 weeks",
-      returnPolicy: "30-day return policy",
       warranty: "2-year warranty",
       inStock: true,
       isWeeklyBestSeller: false,
@@ -532,7 +532,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
           <TabsTrigger value="variants">Variants</TabsTrigger>
-          <TabsTrigger value="shipping">Shipping & Returns</TabsTrigger>
+          <TabsTrigger value="shipping">Shipping & Warranty</TabsTrigger>
         </TabsList>
 
         {/* Basic Information Tab */}
@@ -1219,7 +1219,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
           </Card>
         </TabsContent>
 
-        {/* Shipping & Returns Tab */}
+        {/* Shipping & Warranty Tab (renamed from Shipping & Returns) */}
         <TabsContent value="shipping" className="space-y-6 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -1231,11 +1231,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
               <Label htmlFor="warranty">Warranty</Label>
               <SafeInput id="warranty" {...form.register("warranty")} placeholder="e.g., 2-year warranty" />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="returnPolicy">Return Policy</Label>
-            <SafeInput id="returnPolicy" {...form.register("returnPolicy")} placeholder="e.g., 30-day return policy" />
           </div>
         </TabsContent>
       </Tabs>

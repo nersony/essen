@@ -204,11 +204,11 @@ export default function ImportProductsPage() {
   }
 
   // Handle import
-  const handleImport = async (products: ProductFormData[]) => {
+  const handleImport = async (products: ProductFormData[], overwriteExisting: boolean) => {
     setIsProcessing(true)
 
     try {
-      const result = await importProducts(products)
+      const result = await importProducts(products, overwriteExisting)
 
       if (result.success) {
         toast({

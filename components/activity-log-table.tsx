@@ -17,8 +17,10 @@ import {
 import { getActivityLogsAction } from "@/app/actions/log-actions"
 import type { ActivityLog, ActivityLogAction } from "@/lib/db/schema"
 
-// Format action for display
-function formatAction(action: ActivityLogAction): string {
+// Update the formatAction function to handle null or undefined action values
+function formatAction(action: ActivityLogAction | null | undefined): string {
+  if (!action) return "Unknown Action"
+
   return action
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

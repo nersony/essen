@@ -13,6 +13,7 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = "assets-xyzap"
 const CDN_ENDPOINT = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com"
+const PLACEHOLDER_IMAGE_URL = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
 
 // Check if an image URL is from DigitalOcean Spaces
 export function isDigitalOceanImage(url: string): boolean {
@@ -96,6 +97,12 @@ export async function uploadFile(file: Buffer, fileName: string, contentType: st
 // Delete a file from DigitalOcean Spaces
 export async function deleteFile(fileUrl: string): Promise<boolean> {
   try {
+    // Skip deletion if this is the placeholder image
+    if (fileUrl === PLACEHOLDER_IMAGE_URL) {
+      console.log(`Skipping deletion of placeholder image: ${fileUrl}`)
+      return true
+    }
+
     // Check if the URL is from DigitalOcean Spaces
     if (!isDigitalOceanImage(fileUrl)) {
       console.log(`Skipping deletion of non-DigitalOcean image: ${fileUrl}`)
@@ -141,12 +148,12 @@ export async function deleteMultipleFiles(fileUrls: string[]): Promise<{
     return results
   }
 
-  // Filter out only DigitalOcean images
-  const doImages = fileUrls.filter((url) => isDigitalOceanImage(url))
+  // Filter out the placeholder image and only include DigitalOcean images
+  const filesToDelete = fileUrls.filter((url) => url !== PLACEHOLDER_IMAGE_URL && isDigitalOceanImage(url))
 
-  console.log(`Attempting to delete ${doImages.length} images from DigitalOcean Spaces`)
+  console.log(`Attempting to delete ${filesToDelete.length} images from DigitalOcean Spaces`)
 
-  for (const url of doImages) {
+  for (const url of filesToDelete) {
     try {
       const deleted = await deleteFile(url)
       if (deleted) {

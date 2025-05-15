@@ -12,7 +12,6 @@ export const productExcelSchema = z.object({
   features: z.string().optional(), // Will be split by delimiter
   careInstructions: z.string().optional(), // Will be split by delimiter
   deliveryTime: z.string().optional(),
-  returnPolicy: z.string().optional(),
   warranty: z.string().optional(),
   inStock: z.union([z.boolean(), z.string()]).optional(),
   isWeeklyBestSeller: z.union([z.boolean(), z.string()]).optional(),
@@ -225,10 +224,6 @@ export function convertRowToProductData(
           productData.deliveryTime = value ? String(value) : undefined
           break
 
-        case "returnPolicy":
-          productData.returnPolicy = value ? String(value) : undefined
-          break
-
         case "warranty":
           productData.warranty = value ? String(value) : undefined
           break
@@ -399,7 +394,6 @@ export function generateExcelTemplate(): Uint8Array {
     "features",
     "careInstructions",
     "deliveryTime",
-    "returnPolicy",
     "warranty",
     "inStock",
     "isWeeklyBestSeller",
@@ -419,7 +413,6 @@ export function generateExcelTemplate(): Uint8Array {
     "Durable construction;Easy to clean;Eco-friendly materials",
     "Vacuum regularly;Spot clean with mild soap",
     "2-3 weeks",
-    "30-day return policy",
     "2-year warranty",
     "TRUE",
     "FALSE",
@@ -457,7 +450,7 @@ export function generateExcelTemplate(): Uint8Array {
   }
 
   // Add data validation for boolean fields
-  const booleanCols = ["K", "L"] // inStock, isWeeklyBestSeller
+  const booleanCols = ["J", "K"] // inStock, isWeeklyBestSeller
   for (const col of booleanCols) {
     ws[`${col}2`] = { t: "b", v: true }
 
@@ -529,7 +522,6 @@ export function generateFormattedTemplate(categories: Category[]): Uint8Array {
     "features",
     "careInstructions",
     "deliveryTime",
-    "returnPolicy",
     "warranty",
     "inStock",
     "isWeeklyBestSeller",
@@ -549,7 +541,6 @@ export function generateFormattedTemplate(categories: Category[]): Uint8Array {
     "Durable construction;Easy to clean;Eco-friendly materials",
     "Vacuum regularly;Spot clean with mild soap",
     "2-3 weeks",
-    "30-day return policy",
     "2-year warranty",
     "TRUE",
     "FALSE",
@@ -593,7 +584,6 @@ export function generateFormattedTemplate(categories: Category[]): Uint8Array {
     { wch: 40 }, // features
     { wch: 40 }, // careInstructions
     { wch: 15 }, // deliveryTime
-    { wch: 20 }, // returnPolicy
     { wch: 15 }, // warranty
     { wch: 10 }, // inStock
     { wch: 15 }, // isWeeklyBestSeller

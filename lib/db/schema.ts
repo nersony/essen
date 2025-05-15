@@ -10,7 +10,6 @@ export type Product = {
   images: string[]
   careInstructions?: string[]
   deliveryTime?: string
-  returnPolicy?: string
   warranty?: string
   inStock: boolean
   isWeeklyBestSeller?: boolean // Add this field
