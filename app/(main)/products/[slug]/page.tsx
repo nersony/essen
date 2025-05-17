@@ -558,9 +558,18 @@ Please provide more information about this product.
           )}
 
           {/* Request Information Button */}
-          <Button className="w-full mb-6" onClick={handleRequestInformation}>
-            Request Information
-          </Button>
+          <div className="mb-6">
+            <Button className="w-full" onClick={handleRequestInformation} disabled={!isCurrentCombinationValid()}>
+              Request Information
+            </Button>
+
+            {!isCurrentCombinationValid() && (
+              <p className="text-red-500 text-sm mt-2 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                Cannot request information for unavailable combinations
+              </p>
+            )}
+          </div>
 
           {/* Delivery, Returns, Warranty */}
           <div className="space-y-4 border-t pt-6 mt-6">
