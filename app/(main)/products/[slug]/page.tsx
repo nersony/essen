@@ -1,14 +1,13 @@
-// app/products/[slug]/page.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { getProductBySlug } from "@/app/actions/product-actions"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Clock, Shield } from "lucide-react"
+import { Clock, Shield, AlertCircle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
@@ -67,26 +66,64 @@ export default function ProductPage({ params }: ProductPageProps) {
       if (productData.variants && productData.variants.length > 0) {
         const variant = productData.variants[0]
 
-        // Set default material and dimension
-        if (variant.materials && variant.materials.length > 0) {
-          setSelectedMaterial(variant.materials[0].name)
-        }
-
+        // Find first valid dimension (that has at least one valid combination)
+        let defaultDimension = ""
         if (variant.dimensions && variant.dimensions.length > 0) {
-          setSelectedDimension(variant.dimensions[0].value)
+          for (const dimension of variant.dimensions) {
+            const hasValidCombination = variant.combinations.some(
+              (c) => c.dimensionValue === dimension.value && c.price > 0 && c.inStock === true,
+            )
+
+            if (hasValidCombination) {
+              defaultDimension = dimension.value
+              break
+            }
+          }
+
+          // If no valid dimension found, just use the first one
+          if (!defaultDimension && variant.dimensions.length > 0) {
+            defaultDimension = variant.dimensions[0].value
+          }
+
+          setSelectedDimension(defaultDimension)
         }
 
-        // Find the combination for the selected material and dimension
-        if (variant.combinations && variant.combinations.length > 0) {
-          const defaultMaterial = variant.materials[0]?.name
-          const defaultDimension = variant.dimensions[0]?.value
-
-          const combination = variant.combinations.find(
-            (c) => c.materialName === defaultMaterial && c.dimensionValue === defaultDimension,
+        // Find valid materials for the selected dimension
+        if (defaultDimension && variant.materials && variant.materials.length > 0) {
+          const validMaterials = variant.materials.filter((material) =>
+            variant.combinations.some(
+              (c) =>
+                c.dimensionValue === defaultDimension &&
+                c.materialName === material.name &&
+                c.price > 0 &&
+                c.inStock === true,
+            ),
           )
 
-          if (combination) {
-            setCurrentCombination(combination)
+          // Set default material to first valid one
+          if (validMaterials.length > 0) {
+            setSelectedMaterial(validMaterials[0].name)
+
+            // Find the combination for the selected dimension and material
+            const combination = variant.combinations.find(
+              (c) => c.dimensionValue === defaultDimension && c.materialName === validMaterials[0].name,
+            )
+
+            if (combination) {
+              setCurrentCombination(combination)
+            }
+          } else if (variant.materials.length > 0) {
+            // If no valid materials, just use the first one
+            setSelectedMaterial(variant.materials[0].name)
+
+            // Find any combination for this dimension and material
+            const combination = variant.combinations.find(
+              (c) => c.dimensionValue === defaultDimension && c.materialName === variant.materials[0].name,
+            )
+
+            if (combination) {
+              setCurrentCombination(combination)
+            }
           }
         }
 
@@ -106,6 +143,88 @@ export default function ProductPage({ params }: ProductPageProps) {
     fetchProduct()
   }, [slug, router])
 
+  // Get available materials for the selected dimension
+  const availableMaterials = useMemo(() => {
+    if (!product?.variants || product.variants.length === 0 || !selectedDimension) {
+      return []
+    }
+
+    const variant = product.variants[0]
+
+    // Filter materials that have valid combinations with the selected dimension
+    return variant.materials.filter((material) =>
+      variant.combinations.some(
+        (c) =>
+          c.dimensionValue === selectedDimension &&
+          c.materialName === material.name &&
+          c.price > 0 &&
+          c.inStock === true,
+      ),
+    )
+  }, [product, selectedDimension])
+
+  // Get all materials (for display purposes)
+  const allMaterials = useMemo(() => {
+    if (!product?.variants || product.variants.length === 0) {
+      return []
+    }
+    return product.variants[0].materials
+  }, [product])
+
+  // Check if a dimension has any valid combinations
+  const hasDimensionValidCombinations = (dimensionValue: string) => {
+    if (!product?.variants || product.variants.length === 0) return false
+
+    const variant = product.variants[0]
+    return variant.combinations.some((c) => c.dimensionValue === dimensionValue && c.price > 0 && c.inStock === true)
+  }
+
+  // Handle dimension selection
+  const handleDimensionSelect = (dimensionValue: string) => {
+    setSelectedDimension(dimensionValue)
+
+    // Find valid materials for this dimension
+    if (product?.variants && product.variants.length > 0) {
+      const variant = product.variants[0]
+
+      const validMaterials = variant.materials.filter((material) =>
+        variant.combinations.some(
+          (c) =>
+            c.dimensionValue === dimensionValue &&
+            c.materialName === material.name &&
+            c.price > 0 &&
+            c.inStock === true,
+        ),
+      )
+
+      // Check if current material is valid for the new dimension
+      const isCurrentMaterialValid = validMaterials.some((m) => m.name === selectedMaterial)
+
+      // If current material is not valid for the new dimension, select the first valid material
+      if (!isCurrentMaterialValid && validMaterials.length > 0) {
+        setSelectedMaterial(validMaterials[0].name)
+
+        // Update the current combination
+        const combination = variant.combinations.find(
+          (c) => c.dimensionValue === dimensionValue && c.materialName === validMaterials[0].name,
+        )
+
+        if (combination) {
+          setCurrentCombination(combination)
+        }
+      } else {
+        // Update the current combination for the existing material
+        const combination = variant.combinations.find(
+          (c) => c.dimensionValue === dimensionValue && c.materialName === selectedMaterial,
+        )
+
+        if (combination) {
+          setCurrentCombination(combination)
+        }
+      }
+    }
+  }
+
   // Handle material selection
   const handleMaterialSelect = (materialName: string) => {
     setSelectedMaterial(materialName)
@@ -114,24 +233,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     if (product?.variants && product.variants.length > 0) {
       const variant = product.variants[0]
       const combination = variant.combinations.find(
-        (c) => c.materialName === materialName && c.dimensionValue === selectedDimension,
-      )
-
-      if (combination) {
-        setCurrentCombination(combination)
-      }
-    }
-  }
-
-  // Handle dimension selection
-  const handleDimensionSelect = (dimensionValue: string) => {
-    setSelectedDimension(dimensionValue)
-
-    // Update the current combination
-    if (product?.variants && product.variants.length > 0) {
-      const variant = product.variants[0]
-      const combination = variant.combinations.find(
-        (c) => c.materialName === selectedMaterial && c.dimensionValue === dimensionValue,
+        (c) => c.dimensionValue === selectedDimension && c.materialName === materialName,
       )
 
       if (combination) {
@@ -171,9 +273,10 @@ export default function ProductPage({ params }: ProductPageProps) {
     return total
   }
 
-  // Add a function to check if the current combination is in stock
-  const isCurrentCombinationInStock = () => {
-    return currentCombination?.inStock ?? true
+  // Check if the current combination is valid (has price > 0 and is in stock)
+  const isCurrentCombinationValid = () => {
+    if (!currentCombination) return false
+    return currentCombination.price > 0 && currentCombination.inStock === true
   }
 
   // Handle request information
@@ -198,8 +301,8 @@ I'm interested in the following product:
 
 *Product:* ${product.name}
 *Price:* $${calculateTotalPrice().toFixed(2)}
-${selectedMaterial ? `*Material:* ${selectedMaterial}` : ""}
 ${selectedDimension ? `*Dimension:* ${selectedDimension}` : ""}
+${selectedMaterial ? `*Material:* ${selectedMaterial}` : ""}
 ${addOns ? `*Add-ons:* ${addOns}` : ""}
 
 *Product Link:* ${productUrl}
@@ -269,11 +372,13 @@ Please provide more information about this product.
         <div className="space-y-4">
           <div className="aspect-square relative border rounded-md overflow-hidden">
             <Image
-              src={ensureCorrectImagePath(
-                selectedImage ||
-                  product.images[0] ||
-                  "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
-              )}
+              src={
+                ensureCorrectImagePath(
+                  selectedImage ||
+                    product.images[0] ||
+                    "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
+                ) || "/placeholder.svg"
+              }
               alt={product.name}
               fill
               className="object-contain"
@@ -313,31 +418,7 @@ Please provide more information about this product.
 
           <p className="text-muted-foreground mb-6">{product.description}</p>
 
-          {/* Material Selection */}
-          {product.variants && product.variants[0]?.materials && product.variants[0].materials.length > 0 && (
-            <div className="space-y-3 mb-6">
-              <h3 className="font-medium">Material</h3>
-              <RadioGroup
-                value={selectedMaterial}
-                onValueChange={handleMaterialSelect}
-                className="grid grid-cols-2 gap-2"
-              >
-                {product.variants[0].materials.map((material, index) => (
-                  <div key={index} className="flex items-start space-x-2 border rounded-md p-3">
-                    <RadioGroupItem value={material.name} id={`material-${index}`} className="mt-1" />
-                    <div className="flex-1">
-                      <Label htmlFor={`material-${index}`} className="font-medium cursor-pointer">
-                        {material.name}
-                      </Label>
-                      {material.description && <p className="text-sm text-muted-foreground">{material.description}</p>}
-                    </div>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          )}
-
-          {/* Dimension Selection */}
+          {/* Dimension Selection - Now displayed first */}
           {product.variants && product.variants[0]?.dimensions && product.variants[0].dimensions.length > 0 && (
             <div className="space-y-3 mb-6">
               <h3 className="font-medium">Dimension</h3>
@@ -346,20 +427,107 @@ Please provide more information about this product.
                 onValueChange={handleDimensionSelect}
                 className="grid grid-cols-2 gap-2"
               >
-                {product.variants[0].dimensions.map((dimension, index) => (
-                  <div key={index} className="flex items-start space-x-2 border rounded-md p-3">
-                    <RadioGroupItem value={dimension.value} id={`dimension-${index}`} className="mt-1" />
-                    <div className="flex-1">
-                      <Label htmlFor={`dimension-${index}`} className="font-medium cursor-pointer">
-                        {dimension.value}
-                      </Label>
-                      {dimension.description && (
-                        <p className="text-sm text-muted-foreground">{dimension.description}</p>
-                      )}
+                {product.variants[0].dimensions.map((dimension, index) => {
+                  const hasValidCombinations = hasDimensionValidCombinations(dimension.value)
+
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-start space-x-2 border rounded-md p-3 ${
+                        !hasValidCombinations ? "opacity-50" : ""
+                      }`}
+                    >
+                      <RadioGroupItem value={dimension.value} id={`dimension-${index}`} className="mt-1" />
+                      <div className="flex-1">
+                        <Label htmlFor={`dimension-${index}`} className="font-medium cursor-pointer">
+                          {dimension.value}
+                          {!hasValidCombinations && (
+                            <div className="flex items-center text-xs text-amber-600 mt-1">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Limited options available
+                            </div>
+                          )}
+                        </Label>
+                        {dimension.description && (
+                          <p className="text-sm text-muted-foreground">{dimension.description}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </RadioGroup>
+            </div>
+          )}
+
+          {/* Material Selection - Now displayed second */}
+          {product.variants && product.variants[0]?.materials && product.variants[0].materials.length > 0 && (
+            <div className="space-y-3 mb-6">
+              <h3 className="font-medium">Material</h3>
+
+              {availableMaterials.length === 0 && (
+                <div className="p-4 border border-amber-200 bg-amber-50 rounded-md mb-4">
+                  <div className="flex items-center text-amber-800">
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    <p>No available materials for the selected dimension. Please select a different dimension.</p>
+                  </div>
+                </div>
+              )}
+
+              <RadioGroup
+                value={selectedMaterial}
+                onValueChange={handleMaterialSelect}
+                className="grid grid-cols-2 gap-2"
+              >
+                {allMaterials.map((material, index) => {
+                  // Check if this material is available for the selected dimension
+                  const isAvailable = availableMaterials.some((m) => m.name === material.name)
+
+                  return (
+                    <div
+                      key={index}
+                      className={`flex items-start space-x-2 border rounded-md p-3 ${!isAvailable ? "opacity-50" : ""}`}
+                    >
+                      <RadioGroupItem
+                        value={material.name}
+                        id={`material-${index}`}
+                        className="mt-1"
+                        disabled={!isAvailable}
+                      />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor={`material-${index}`}
+                          className={`font-medium cursor-pointer ${!isAvailable ? "text-muted-foreground" : ""}`}
+                        >
+                          {material.name}
+                          {!isAvailable && (
+                            <div className="flex items-center text-xs text-red-500 mt-1">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Not available with selected dimension
+                            </div>
+                          )}
+                        </Label>
+                        {material.description && (
+                          <p className="text-sm text-muted-foreground">{material.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </RadioGroup>
+            </div>
+          )}
+
+          {/* Warning if current combination is not valid */}
+          {currentCombination && !isCurrentCombinationValid() && (
+            <div className="p-4 border border-red-200 bg-red-50 rounded-md mb-6">
+              <div className="flex items-center text-red-800">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                <p>
+                  {currentCombination.price === 0
+                    ? "This combination is not available for purchase."
+                    : "This combination is currently out of stock."}
+                </p>
+              </div>
             </div>
           )}
 
@@ -375,6 +543,7 @@ Please provide more information about this product.
                       checked={selectedAddOns[addon.name] || false}
                       onCheckedChange={(checked) => handleAddOnChange(addon.name, checked === true)}
                       className="mt-1"
+                      disabled={!isCurrentCombinationValid()}
                     />
                     <div className="flex-1">
                       <Label htmlFor={`addon-${index}`} className="font-medium cursor-pointer">
@@ -384,76 +553,6 @@ Please provide more information about this product.
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {/* Price Breakdown */}
-          {selectedVariant && (
-            <div className="mb-6 border rounded-md p-4 bg-gray-50">
-              <h3 className="font-medium mb-2">Price Breakdown</h3>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Base Price:</span>
-                  <span>${selectedVariant.basePrice.toFixed(2)}</span>
-                </div>
-
-                {/* Material adjustment */}
-                {selectedVariant.materialOptions &&
-                  (() => {
-                    const materialOption = selectedVariant.materialOptions.find((m) => m.name === selectedMaterial)
-                    if (materialOption && materialOption.priceAdjustment !== 0) {
-                      return (
-                        <div className="flex justify-between">
-                          <span>{selectedMaterial} Adjustment:</span>
-                          <span>
-                            {materialOption.priceAdjustment > 0
-                              ? `+$${materialOption.priceAdjustment.toFixed(2)}`
-                              : `-$${Math.abs(materialOption.priceAdjustment).toFixed(2)}`}
-                          </span>
-                        </div>
-                      )
-                    }
-                    return null
-                  })()}
-
-                {/* Dimension adjustment */}
-                {selectedVariant.dimensionOptions &&
-                  (() => {
-                    const dimensionOption = selectedVariant.dimensionOptions.find((d) => d.value === selectedDimension)
-                    if (dimensionOption && dimensionOption.priceAdjustment !== 0) {
-                      return (
-                        <div className="flex justify-between">
-                          <span>{selectedDimension} Adjustment:</span>
-                          <span>
-                            {dimensionOption.priceAdjustment > 0
-                              ? `+$${dimensionOption.priceAdjustment.toFixed(2)}`
-                              : `-$${Math.abs(dimensionOption.priceAdjustment).toFixed(2)}`}
-                          </span>
-                        </div>
-                      )
-                    }
-                    return null
-                  })()}
-
-                {/* Add-ons */}
-                {selectedVariant.addOns && selectedVariant.addOns.some((addon) => selectedAddOns[addon.name]) && (
-                  <>
-                    {selectedVariant.addOns.map((addon, index) =>
-                      selectedAddOns[addon.name] ? (
-                        <div key={index} className="flex justify-between">
-                          <span>{addon.name}:</span>
-                          <span>+${addon.price.toFixed(2)}</span>
-                        </div>
-                      ) : null,
-                    )}
-                  </>
-                )}
-
-                <div className="border-t pt-1 mt-1 font-bold flex justify-between">
-                  <span>Total:</span>
-                  <span>${calculateTotalPrice().toFixed(2)}</span>
-                </div>
               </div>
             </div>
           )}

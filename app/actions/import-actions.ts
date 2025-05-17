@@ -163,17 +163,17 @@ export async function importProducts(
         }
 
         // Prepare product data for MongoDB
+        const existingProduct = exists ? await db.collection("products").findOne({ slug: product.slug }) : null
+
         const productData = {
           ...product,
-          _id: exists
-            ? new ObjectId((await db.collection("products").findOne({ slug: product.slug }))?._id)
-            : new ObjectId(),
+          _id: exists ? new ObjectId(existingProduct?._id) : new ObjectId(),
           // Ensure we have an id field (UUID) for each product
-          id: exists ? (await db.collection("products").findOne({ slug: product.slug }))?.id || uuidv4() : uuidv4(),
+          id: exists ? existingProduct?.id || uuidv4() : uuidv4(),
+          // Preserve existing images if the product exists and is being overwritten
+          images: exists ? existingProduct?.images || [] : product.images || [],
           updatedAt: new Date(),
-          createdAt: exists
-            ? (await db.collection("products").findOne({ slug: product.slug }))?.createdAt || new Date()
-            : new Date(),
+          createdAt: exists ? existingProduct?.createdAt || new Date() : new Date(),
         }
 
         if (exists && shouldOverwrite) {
