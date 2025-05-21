@@ -311,9 +311,21 @@ export function DataPreview({ data, onBack, onImport, isImporting }: DataPreview
                         </td>
                         <td className="border p-2">
                           {item.processed.variants?.[0]?.materials?.map((m) => m.name).join(", ") || "N/A"}
+                          {item.processed.variants?.[0]?.combinations?.some((c) => !c.materialName) && (
+                            <Badge className="ml-1 bg-amber-100 text-amber-800 hover:bg-amber-200">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Empty Values
+                            </Badge>
+                          )}
                         </td>
                         <td className="border p-2">
                           {item.processed.variants?.[0]?.dimensions?.map((d) => d.value).join(", ") || "N/A"}
+                          {item.processed.variants?.[0]?.combinations?.some((c) => !c.dimensionValue) && (
+                            <Badge className="ml-1 bg-amber-100 text-amber-800 hover:bg-amber-200">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Empty Values
+                            </Badge>
+                          )}
                         </td>
                         <td className="border p-2">
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-200">

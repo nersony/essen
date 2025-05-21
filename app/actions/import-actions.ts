@@ -29,7 +29,9 @@ export async function getCategoriesForImport(): Promise<Category[]> {
   }
 }
 
-// Validate product data
+// Add additional validation for product data before import
+// Find the validateProduct function and add this validation for materialDimensionPrices
+
 export async function validateProduct(productData: ProductFormData): Promise<{
   valid: boolean
   errors: string[]
@@ -47,6 +49,20 @@ export async function validateProduct(productData: ProductFormData): Promise<{
 
   if (!productData.description) {
     errors.push("Description is required")
+  }
+
+  // Validate variants and combinations if they exist
+  if (productData.variants && productData.variants.length > 0) {
+    const variant = productData.variants[0]
+
+    // Check if there are combinations with empty material or dimension
+    if (variant.combinations && variant.combinations.length > 0) {
+      variant.combinations.forEach((combo, index) => {
+        if (!combo.materialName && !combo.dimensionValue) {
+          errors.push(`Combination #${index + 1} has both empty material and dimension`)
+        }
+      })
+    }
   }
 
   // Check if category exists

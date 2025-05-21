@@ -66,9 +66,10 @@ export default function ProductPage({ params }: ProductPageProps) {
       if (productData.variants && productData.variants.length > 0) {
         const variant = productData.variants[0]
 
-        // Find first valid dimension (that has at least one valid combination)
-        let defaultDimension = ""
+        // Only set dimension if dimensions exist and are not empty
         if (variant.dimensions && variant.dimensions.length > 0) {
+          // Find first valid dimension (that has at least one valid combination)
+          let defaultDimension = ""
           for (const dimension of variant.dimensions) {
             const hasValidCombination = variant.combinations.some(
               (c) => c.dimensionValue === dimension.value && c.price > 0 && c.inStock === true,
@@ -88,38 +89,51 @@ export default function ProductPage({ params }: ProductPageProps) {
           setSelectedDimension(defaultDimension)
         }
 
-        // Find valid materials for the selected dimension
-        if (defaultDimension && variant.materials && variant.materials.length > 0) {
-          const validMaterials = variant.materials.filter((material) =>
-            variant.combinations.some(
-              (c) =>
-                c.dimensionValue === defaultDimension &&
-                c.materialName === material.name &&
-                c.price > 0 &&
-                c.inStock === true,
-            ),
-          )
-
-          // Set default material to first valid one
-          if (validMaterials.length > 0) {
-            setSelectedMaterial(validMaterials[0].name)
-
-            // Find the combination for the selected dimension and material
-            const combination = variant.combinations.find(
-              (c) => c.dimensionValue === defaultDimension && c.materialName === validMaterials[0].name,
+        // Only set material if materials exist and are not empty
+        if (variant.materials && variant.materials.length > 0) {
+          // If we have a dimension, find valid materials for it
+          if (selectedDimension) {
+            const validMaterials = variant.materials.filter((material) =>
+              variant.combinations.some(
+                (c) =>
+                  c.dimensionValue === selectedDimension &&
+                  c.materialName === material.name &&
+                  c.price > 0 &&
+                  c.inStock === true,
+              ),
             )
 
-            if (combination) {
-              setCurrentCombination(combination)
+            // Set default material to first valid one
+            if (validMaterials.length > 0) {
+              setSelectedMaterial(validMaterials[0].name)
+
+              // Find the combination for the selected dimension and material
+              const combination = variant.combinations.find(
+                (c) => c.dimensionValue === selectedDimension && c.materialName === validMaterials[0].name,
+              )
+
+              if (combination) {
+                setCurrentCombination(combination)
+              }
+            } else if (variant.materials.length > 0) {
+              // If no valid materials, just use the first one
+              setSelectedMaterial(variant.materials[0].name)
+
+              // Find any combination for this dimension and material
+              const combination = variant.combinations.find(
+                (c) => c.dimensionValue === selectedDimension && c.materialName === variant.materials[0].name,
+              )
+
+              if (combination) {
+                setCurrentCombination(combination)
+              }
             }
-          } else if (variant.materials.length > 0) {
-            // If no valid materials, just use the first one
+          } else {
+            // No dimension, just set the first material
             setSelectedMaterial(variant.materials[0].name)
 
-            // Find any combination for this dimension and material
-            const combination = variant.combinations.find(
-              (c) => c.dimensionValue === defaultDimension && c.materialName === variant.materials[0].name,
-            )
+            // Find any combination for this material with empty dimension
+            const combination = variant.combinations.find((c) => c.materialName === variant.materials[0].name)
 
             if (combination) {
               setCurrentCombination(combination)
@@ -145,11 +159,21 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   // Get available materials for the selected dimension
   const availableMaterials = useMemo(() => {
-    if (!product?.variants || product.variants.length === 0 || !selectedDimension) {
+    if (!product?.variants || product.variants.length === 0) {
       return []
     }
 
     const variant = product.variants[0]
+
+    // If no dimensions, return all materials
+    if (!variant.dimensions || variant.dimensions.length === 0) {
+      return variant.materials || []
+    }
+
+    // If no selected dimension, return empty array
+    if (!selectedDimension) {
+      return []
+    }
 
     // Filter materials that have valid combinations with the selected dimension
     return variant.materials.filter((material) =>
@@ -168,7 +192,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     if (!product?.variants || product.variants.length === 0) {
       return []
     }
-    return product.variants[0].materials
+    return product.variants[0].materials || []
   }, [product])
 
   // Check if a dimension has any valid combinations
@@ -233,7 +257,9 @@ export default function ProductPage({ params }: ProductPageProps) {
     if (product?.variants && product.variants.length > 0) {
       const variant = product.variants[0]
       const combination = variant.combinations.find(
-        (c) => c.dimensionValue === selectedDimension && c.materialName === materialName,
+        (c) =>
+          // If we have a dimension, match both
+          (selectedDimension ? c.dimensionValue === selectedDimension : true) && c.materialName === materialName,
       )
 
       if (combination) {
@@ -255,7 +281,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     if (!product) return 0
 
     // Start with the combination price or product base price
-    let total = currentCombination?.price || product.price
+    let total = currentCombination?.price || product.price || 0
 
     // Add price of selected add-ons
     if (product.variants && product.variants.length > 0) {
@@ -264,7 +290,7 @@ export default function ProductPage({ params }: ProductPageProps) {
       if (variant.addOns) {
         variant.addOns.forEach((addon) => {
           if (selectedAddOns[addon.name]) {
-            total += addon.price
+            total += addon.price || 0
           }
         })
       }
@@ -275,8 +301,32 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   // Check if the current combination is valid (has price > 0 and is in stock)
   const isCurrentCombinationValid = () => {
-    if (!currentCombination) return false
+    // If no variants or combinations, just check if product has a price
+    if (!product?.variants || product.variants.length === 0 || !currentCombination) {
+      return product?.price > 0
+    }
+
     return currentCombination.price > 0 && currentCombination.inStock === true
+  }
+
+  // Check if product has dimensions
+  const hasDimensions = () => {
+    return (
+      product?.variants &&
+      product.variants.length > 0 &&
+      product.variants[0].dimensions &&
+      product.variants[0].dimensions.length > 0
+    )
+  }
+
+  // Check if product has materials
+  const hasMaterials = () => {
+    return (
+      product?.variants &&
+      product.variants.length > 0 &&
+      product.variants[0].materials &&
+      product.variants[0].materials.length > 0
+    )
   }
 
   // Handle request information
@@ -397,9 +447,12 @@ Please provide more information about this product.
                   onClick={() => setSelectedImage(image)}
                 >
                   <Image
-                    src={ensureCorrectImagePath(
-                      image || "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
-                    )}
+                    src={
+                      ensureCorrectImagePath(
+                        image ||
+                          "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
+                      ) || "/placeholder.svg"
+                    }
                     alt={`${product.name} - Image ${index + 1}`}
                     fill
                     className="object-cover"
@@ -418,8 +471,8 @@ Please provide more information about this product.
 
           <p className="text-muted-foreground mb-6">{product.description}</p>
 
-          {/* Dimension Selection - Now displayed first */}
-          {product.variants && product.variants[0]?.dimensions && product.variants[0].dimensions.length > 0 && (
+          {/* Dimension Selection - Only show if dimensions exist */}
+          {hasDimensions() && (
             <div className="space-y-3 mb-6">
               <h3 className="font-medium">Dimension</h3>
               <RadioGroup
@@ -459,12 +512,12 @@ Please provide more information about this product.
             </div>
           )}
 
-          {/* Material Selection - Now displayed second */}
-          {product.variants && product.variants[0]?.materials && product.variants[0].materials.length > 0 && (
+          {/* Material Selection - Only show if materials exist */}
+          {hasMaterials() && (
             <div className="space-y-3 mb-6">
               <h3 className="font-medium">Material</h3>
 
-              {availableMaterials.length === 0 && (
+              {hasDimensions() && availableMaterials.length === 0 && (
                 <div className="p-4 border border-amber-200 bg-amber-50 rounded-md mb-4">
                   <div className="flex items-center text-amber-800">
                     <AlertCircle className="h-5 w-5 mr-2" />
@@ -480,7 +533,8 @@ Please provide more information about this product.
               >
                 {allMaterials.map((material, index) => {
                   // Check if this material is available for the selected dimension
-                  const isAvailable = availableMaterials.some((m) => m.name === material.name)
+                  // If no dimensions, all materials are available
+                  const isAvailable = !hasDimensions() || availableMaterials.some((m) => m.name === material.name)
 
                   return (
                     <div
@@ -531,7 +585,7 @@ Please provide more information about this product.
             </div>
           )}
 
-          {/* Add-ons */}
+          {/* Add-ons - Only show if add-ons exist */}
           {product.variants && product.variants[0]?.addOns && product.variants[0].addOns.length > 0 && (
             <div className="space-y-3 mb-6">
               <h3 className="font-medium uppercase">Add-ons</h3>
@@ -549,7 +603,7 @@ Please provide more information about this product.
                       <Label htmlFor={`addon-${index}`} className="font-medium cursor-pointer">
                         {addon.name}
                       </Label>
-                      <p className="text-sm text-muted-foreground">+${addon.price.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">+${(addon.price || 0).toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
@@ -605,12 +659,16 @@ Please provide more information about this product.
           <TabsContent value="details" className="py-6">
             <h3 className="text-xl font-bold mb-4">Features</h3>
             <ul className="space-y-2">
-              {product.features.map((feature, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="mr-2">•</span>
-                  <span>{feature}</span>
-                </li>
-              ))}
+              {product.features && product.features.length > 0 ? (
+                product.features.map((feature, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="mr-2">•</span>
+                    <span>{feature}</span>
+                  </li>
+                ))
+              ) : (
+                <li>No features listed for this product.</li>
+              )}
             </ul>
           </TabsContent>
 

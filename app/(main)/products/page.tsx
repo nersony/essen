@@ -7,18 +7,23 @@ import { useSearchParams } from "next/navigation"
 import { getProducts, getProductsWithFilters } from "@/app/actions/product-actions"
 import { Button } from "@/components/ui/button"
 import { ProductFilters } from "@/components/product-filters"
+import { Pagination } from "@/components/pagination"
 import type { Product } from "@/lib/db/schema"
 import { Filter } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-
-// Import the image utility at the top of the file
 import { ensureCorrectImagePath } from "@/lib/image-utils"
 
+// Update the component to include pagination
 export default function ProductsPage() {
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<Product[]>([])
+  const [totalProducts, setTotalProducts] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  // Get current page from URL or default to 1
+  const currentPage = Number(searchParams.get("page") || "1")
+  const productsPerPage = 9 // Number of products per page
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -57,14 +62,18 @@ export default function ProductsPage() {
       }
 
       // Get filtered products or all products if no filters
-      const productsData = Object.keys(filters).length > 0 ? await getProductsWithFilters(filters) : await getProducts()
+      const result =
+        Object.keys(filters).length > 0
+          ? await getProductsWithFilters(filters, currentPage, productsPerPage)
+          : await getProducts(currentPage, productsPerPage)
 
-      setProducts(productsData)
+      setProducts(result.products)
+      setTotalProducts(result.total)
       setIsLoading(false)
     }
 
     fetchProducts()
-  }, [searchParams])
+  }, [searchParams, currentPage, productsPerPage])
 
   // Count active filters
   const getActiveFilterCount = () => {
@@ -82,6 +91,7 @@ export default function ProductsPage() {
   }
 
   const activeFilterCount = getActiveFilterCount()
+  const totalPages = Math.ceil(totalProducts / productsPerPage)
 
   return (
     <div className="container py-12">
@@ -145,48 +155,59 @@ export default function ProductsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((product) => (
-                    <div key={product.id} className="flex flex-col h-full">
-                      <div className="aspect-square relative overflow-hidden mb-4">
-                        <Image
-                          src={ensureCorrectImagePath(product.images[0] || "/placeholder.svg?height=600&width=600")}
-                          alt={product.name}
-                          fill
-                          className="object-cover transition-transform hover:scale-105"
-                        />
-                      </div>
-                      <div className="flex flex-col">
-                        <h3 className="font-bold text-lg uppercase">{product.name}</h3>
-                        <p className="text-muted-foreground text-sm uppercase mb-2">{product.category}</p>
-                        <p className="font-medium mb-4">
-                          {product.variants && product.variants.length > 0 && product.variants[0].combinations
-                            ? (() => {
-                                // Filter for in-stock combinations only
-                                const inStockCombinations = product.variants[0].combinations.filter((c) => c.inStock)
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map((product) => (
+                      <div key={product.id} className="flex flex-col h-full">
+                        <div className="aspect-square relative overflow-hidden mb-4">
+                          <Image
+                            src={ensureCorrectImagePath(product.images[0] || "/placeholder.svg?height=600&width=600")}
+                            alt={product.name}
+                            fill
+                            className="object-cover transition-transform hover:scale-105"
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <h3 className="font-bold text-lg uppercase">{product.name}</h3>
+                          <p className="text-muted-foreground text-sm uppercase mb-2">{product.category}</p>
+                          <p className="font-medium mb-4">
+                            {product.variants && product.variants.length > 0 && product.variants[0].combinations
+                              ? (() => {
+                                  // Filter for in-stock combinations only
+                                  const inStockCombinations = product.variants[0].combinations.filter((c) => c.inStock)
 
-                                // Get valid prices (ensure they're numbers and greater than 0)
-                                const validPrices = inStockCombinations
-                                  .map((c) => c.price)
-                                  .filter((price) => typeof price === "number" && !isNaN(price) && price > 0)
+                                  // Get valid prices (ensure they're numbers and greater than 0)
+                                  const validPrices = inStockCombinations
+                                    .map((c) => c.price)
+                                    .filter((price) => typeof price === "number" && !isNaN(price) && price > 0)
 
-                                if (validPrices.length > 0) {
-                                  return `From $${Math.min(...validPrices).toFixed(2)}`
-                                } else {
-                                  return "Price upon request"
-                                }
-                              })()
-                            : product.price
-                              ? `$${product.price.toFixed(2)}`
-                              : "Price upon request"}
-                        </p>
-                        <Button asChild variant="outline" className="mt-auto">
-                          <Link href={`/products/${product.slug}`}>View Details</Link>
-                        </Button>
+                                  if (validPrices.length > 0) {
+                                    return `From $${Math.min(...validPrices).toFixed(2)}`
+                                  } else {
+                                    return "Price upon request"
+                                  }
+                                })()
+                              : product.price
+                                ? `$${product.price.toFixed(2)}`
+                                : "Price upon request"}
+                          </p>
+                          <Button asChild variant="outline" className="mt-auto">
+                            <Link href={`/products/${product.slug}`}>View Details</Link>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  <Pagination currentPage={currentPage} totalPages={totalPages} />
+
+                  {/* Products count */}
+                  <div className="text-center text-sm text-muted-foreground mt-4">
+                    Showing {Math.min(productsPerPage * (currentPage - 1) + 1, totalProducts)} to{" "}
+                    {Math.min(productsPerPage * currentPage, totalProducts)} of {totalProducts} products
+                  </div>
+                </>
               )}
             </>
           )}

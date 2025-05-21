@@ -17,7 +17,8 @@ export function ProductFilters() {
 
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000])
+  // Update default price range to 0-10000
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string[]>>({})
   const [availableAttributes, setAvailableAttributes] = useState<Record<string, string[]>>({})
@@ -59,68 +60,44 @@ export function ProductFilters() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const [categoriesData, productsData] = await Promise.all([getCategories(), getProducts()])
+      try {
+        const [categoriesData, productsResponse] = await Promise.all([getCategories(), getProducts()])
 
-      setCategories(categoriesData)
-      setProducts(productsData)
+        setCategories(categoriesData)
 
-      // Extract available attributes from products
-      const attributes: Record<string, Set<string>> = {}
+        // Access the products array from the response
+        const productsData = productsResponse.products
 
-      productsData.forEach((product) => {
-        if (product.attributes) {
-          Object.entries(product.attributes).forEach(([key, values]) => {
-            if (!attributes[key]) {
-              attributes[key] = new Set()
-            }
+        setProducts(productsData)
 
-            values.forEach((value) => attributes[key].add(value))
-          })
-        }
-      })
+        // Extract available attributes from products
+        const attributes: Record<string, Set<string>> = {}
 
-      // Convert Sets to arrays
-      const attributesObj: Record<string, string[]> = {}
-      Object.entries(attributes).forEach(([key, valueSet]) => {
-        attributesObj[key] = Array.from(valueSet).sort()
-      })
-
-      setAvailableAttributes(attributesObj)
-
-      // Set initial price range based on product prices
-      if (productsData.length > 0) {
-        const prices = productsData
-          .map((p) => {
-            // Check if product has variants with combinations
-            if (p.variants && p.variants.length > 0 && p.variants[0].combinations) {
-              // Get prices from in-stock combinations
-              const combinationPrices = p.variants[0].combinations
-                .filter((c) => c.inStock)
-                .map((c) => c.price)
-                .filter((price) => typeof price === "number" && !isNaN(price) && price > 0)
-
-              // Return the minimum price if available
-              if (combinationPrices.length > 0) {
-                return Math.min(...combinationPrices)
+        productsData.forEach((product) => {
+          if (product.attributes) {
+            Object.entries(product.attributes).forEach(([key, values]) => {
+              if (!attributes[key]) {
+                attributes[key] = new Set()
               }
-            }
-            // Fall back to the base price if available
-            return p.price || 0
-          })
-          .filter((price) => price > 0)
 
-        if (prices.length > 0) {
-          const minPrice = Math.floor(Math.min(...prices))
-          const maxPrice = Math.ceil(Math.max(...prices))
-
-          // Only update if not already set from URL params
-          if (priceRange[0] === 0 && priceRange[1] === 5000) {
-            setPriceRange([minPrice, maxPrice])
+              values.forEach((value) => attributes[key].add(value))
+            })
           }
-        }
-      }
+        })
 
-      setIsLoading(false)
+        // Convert Sets to arrays
+        const attributesObj: Record<string, string[]> = {}
+        Object.entries(attributes).forEach(([key, valueSet]) => {
+          attributesObj[key] = Array.from(valueSet).sort()
+        })
+
+        setAvailableAttributes(attributesObj)
+
+      } catch (error) {
+        console.error("Error fetching data:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     fetchData()
@@ -153,13 +130,8 @@ export function ProductFilters() {
   const resetFilters = () => {
     setSelectedCategories([])
 
-    // Reset price range to min/max of all products
-    if (products.length > 0) {
-      const prices = products.map((p) => p.price)
-      setPriceRange([Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))])
-    } else {
-      setPriceRange([0, 5000])
-    }
+    // Updated default reset range to 0-10000
+    setPriceRange([0, 10000])
 
     setSelectedAttributes({})
     router.push("/products")
@@ -202,7 +174,7 @@ export function ProductFilters() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium mb-2">Categories</h3>
-        <div className="space-y-2">
+        <div className="max-h-48 overflow-y-auto pr-2 space-y-2 scrollbar-thin">
           {categories.map((category) => (
             <div key={category.id} className="flex items-center space-x-2">
               <Checkbox
@@ -224,7 +196,8 @@ export function ProductFilters() {
           <CustomRangeSlider
             defaultValue={priceRange}
             min={0}
-            max={5000}
+            // Updated max value to 10000
+            max={10000}
             step={10}
             value={priceRange}
             onValueChange={(value) => setPriceRange(value as [number, number])}

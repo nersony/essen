@@ -280,18 +280,34 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; mes
 }
 
 // Get all products
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(page = 1, limit = 9): Promise<{ products: Product[]; total: number }> {
   try {
     const client = await clientPromise
     const db = client.db()
 
-    const products = await db.collection(COLLECTION_NAME).find({}).sort({ createdAt: -1 }).toArray()
+    // Calculate skip value for pagination
+    const skip = (page - 1) * limit
+
+    // Get total count for pagination
+    const total = await db.collection(COLLECTION_NAME).countDocuments()
+
+    // Get paginated products
+    const products = await db
+      .collection(COLLECTION_NAME)
+      .find({})
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
 
     // Serialize all products
-    return products.map((product) => serializeMongoDocument(product)) as Product[]
+    return {
+      products: products.map((product) => serializeMongoDocument(product)) as Product[],
+      total,
+    }
   } catch (error) {
     console.error("Failed to get products:", error)
-    return []
+    return { products: [], total: 0 }
   }
 }
 
@@ -336,7 +352,11 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 // Get products with filters
-export async function getProductsWithFilters(filters: any): Promise<Product[]> {
+export async function getProductsWithFilters(
+  filters: any,
+  page = 1,
+  limit = 9,
+): Promise<{ products: Product[]; total: number }> {
   try {
     const client = await clientPromise
     const db = client.db()
@@ -350,6 +370,13 @@ export async function getProductsWithFilters(filters: any): Promise<Product[]> {
     if (filters.priceRange) {
       // Create a complex query that checks both legacy price field and variant combinations
       query.$or = [
+        // Check legacy price field
+        {
+          price: {
+            $gte: filters.priceRange.min,
+            $lte: filters.priceRange.max,
+          },
+        },
         // Check prices in variant combinations
         {
           "variants.combinations": {
@@ -371,13 +398,29 @@ export async function getProductsWithFilters(filters: any): Promise<Product[]> {
       }
     }
 
-    const products = await db.collection(COLLECTION_NAME).find(query).sort({ createdAt: -1 }).toArray()
+    // Calculate skip value for pagination
+    const skip = (page - 1) * limit
+
+    // Get total count for pagination
+    const total = await db.collection(COLLECTION_NAME).countDocuments(query)
+
+    // Get paginated products with filters
+    const products = await db
+      .collection(COLLECTION_NAME)
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
 
     // Serialize all products
-    return products.map((product) => serializeMongoDocument(product)) as Product[]
+    return {
+      products: products.map((product) => serializeMongoDocument(product)) as Product[],
+      total,
+    }
   } catch (error) {
     console.error("Failed to get products with filters:", error)
-    return []
+    return { products: [], total: 0 }
   }
 }
 

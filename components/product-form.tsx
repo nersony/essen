@@ -30,7 +30,7 @@ import { createProduct, updateProduct, deleteProduct } from "@/app/actions/produ
 import { getCategories } from "@/app/actions/category-actions"
 
 // Define the placeholder image URL
-const PLACEHOLDER_IMAGE_URL = "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
+const PLACEHOLDER_IMAGE_URL = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
 
 // Define the form schema
 const productFormSchema = z.object({
@@ -38,7 +38,7 @@ const productFormSchema = z.object({
   slug: z
     .string()
     .min(1, "Slug is required")
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase with hyphens"),
+    .regex(/^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/, "Slug must contain only letters, numbers, and hyphens"),
   category: z.string().min(1, "Category is required"),
   description: z.string().min(1, "Description is required"),
   features: z.array(z.string()).min(1, "At least one feature is required"),
@@ -77,6 +77,10 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [confirmSlug, setConfirmSlug] = useState("")
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const [materialErrors, setMaterialErrors] = useState<string[]>([])
+  const [dimensionErrors, setDimensionErrors] = useState<string[]>([])
+  const [formError, setFormError] = useState<string | null>(null)
 
   // Default material options
   const defaultMaterialOptions: MaterialOption[] = [
@@ -293,8 +297,45 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
     // setVariants(variants.filter((_, i) => i !== index))
   }
 
+  // Validate materials and dimensions
+  const validateMaterials = () => {
+    const errors: string[] = []
+    variants.materials.forEach((material, index) => {
+      if (!material.name.trim()) {
+        errors[index] = "Material name cannot be empty"
+      }
+    })
+    setMaterialErrors(errors)
+    return errors.length === 0
+  }
+
+  const validateDimensions = () => {
+    const errors: string[] = []
+    variants.dimensions.forEach((dimension, index) => {
+      if (!dimension.value.trim()) {
+        errors[index] = "Dimension value cannot be empty"
+      }
+    })
+    setDimensionErrors(errors)
+    return errors.length === 0
+  }
+
   // Handle form submission
   const onSubmit = async (data: ProductFormData) => {
+    // Reset validation errors
+    setMaterialErrors([])
+    setDimensionErrors([])
+    setFormError(null)
+
+    // Validate materials and dimensions
+    const materialsValid = validateMaterials()
+    const dimensionsValid = validateDimensions()
+
+    if (!materialsValid || !dimensionsValid) {
+      setFormError("Please fix the errors in materials and dimensions before submitting.")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -302,24 +343,78 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
       const allCombinations = []
 
       // Create combinations for any missing material-dimension pairs
-      variants.materials.forEach((material) => {
-        variants.dimensions.forEach((dimension) => {
+      // Include combinations with blank material or dimension values
+      if (variants.materials.length > 0 && variants.dimensions.length > 0) {
+        variants.materials.forEach((material) => {
+          variants.dimensions.forEach((dimension) => {
+            const existingCombination = variants.combinations.find(
+              (c) => c.materialName === material.name && c.dimensionValue === dimension.value,
+            )
+
+            if (!existingCombination) {
+              allCombinations.push({
+                materialName: material.name,
+                dimensionValue: dimension.value,
+                price: 0, // Default to 0 instead of data.price
+                inStock: true,
+              })
+            } else {
+              allCombinations.push(existingCombination)
+            }
+          })
+        })
+      } else if (variants.materials.length > 0 && variants.dimensions.length === 0) {
+        // Handle case with only materials, no dimensions
+        variants.materials.forEach((material) => {
           const existingCombination = variants.combinations.find(
-            (c) => c.materialName === material.name && c.dimensionValue === dimension.value,
+            (c) => c.materialName === material.name && !c.dimensionValue,
           )
 
           if (!existingCombination) {
             allCombinations.push({
               materialName: material.name,
-              dimensionValue: dimension.value,
-              price: 0, // Default to 0 instead of data.price
+              dimensionValue: "",
+              price: 0,
               inStock: true,
             })
           } else {
             allCombinations.push(existingCombination)
           }
         })
-      })
+      } else if (variants.materials.length === 0 && variants.dimensions.length > 0) {
+        // Handle case with only dimensions, no materials
+        variants.dimensions.forEach((dimension) => {
+          const existingCombination = variants.combinations.find(
+            (c) => !c.materialName && c.dimensionValue === dimension.value,
+          )
+
+          if (!existingCombination) {
+            allCombinations.push({
+              materialName: "",
+              dimensionValue: dimension.value,
+              price: 0,
+              inStock: true,
+            })
+          } else {
+            allCombinations.push(existingCombination)
+          }
+        })
+      } else {
+        // Handle case with no materials and no dimensions
+        const existingCombination = variants.combinations.find((c) => !c.materialName && !c.dimensionValue)
+
+        if (!existingCombination && variants.combinations.length === 0) {
+          allCombinations.push({
+            materialName: "",
+            dimensionValue: "",
+            price: 0,
+            inStock: true,
+          })
+        } else {
+          // Use existing combinations
+          allCombinations.push(...variants.combinations)
+        }
+      }
 
       // Create a single variant with all materials, dimensions, and combinations
       const formDataWithVariants = {
@@ -547,10 +642,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
   const generateSlug = () => {
     const name = form.getValues("name")
     if (name) {
-      const slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
+      const slug = name.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "")
       form.setValue("slug", slug)
     }
   }
@@ -879,9 +971,19 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                   ...variants,
                                   materials: updatedMaterials,
                                 })
+                                // Clear error when typing
+                                if (materialErrors[materialIndex]) {
+                                  const newErrors = [...materialErrors]
+                                  newErrors[materialIndex] = ""
+                                  setMaterialErrors(newErrors)
+                                }
                               }}
                               placeholder="e.g., Fabric"
+                              className={materialErrors[materialIndex] ? "border-red-500" : ""}
                             />
+                            {materialErrors[materialIndex] && (
+                              <p className="text-xs text-red-500 mt-1">{materialErrors[materialIndex]}</p>
+                            )}
                           </div>
                           <div>
                             <Label htmlFor={`material-desc-${materialIndex}`} className="text-xs">
@@ -920,7 +1022,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                               combinations: updatedCombinations,
                             })
                           }}
-                          disabled={variants.materials.length <= 1}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -967,9 +1068,19 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                   ...variants,
                                   dimensions: updatedDimensions,
                                 })
+                                // Clear error when typing
+                                if (dimensionErrors[dimensionIndex]) {
+                                  const newErrors = [...dimensionErrors]
+                                  newErrors[dimensionIndex] = ""
+                                  setDimensionErrors(newErrors)
+                                }
                               }}
                               placeholder="e.g., 2600mm"
+                              className={dimensionErrors[dimensionIndex] ? "border-red-500" : ""}
                             />
+                            {dimensionErrors[dimensionIndex] && (
+                              <p className="text-xs text-red-500 mt-1">{dimensionErrors[dimensionIndex]}</p>
+                            )}
                           </div>
                           <div>
                             <Label htmlFor={`dimension-desc-${dimensionIndex}`} className="text-xs">
@@ -1008,7 +1119,6 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                               combinations: updatedCombinations,
                             })
                           }}
-                          disabled={variants.dimensions.length <= 1}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -1021,7 +1131,8 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                 <div className="space-y-4 border-t pt-4">
                   <h3 className="text-lg font-medium">Pricing & Stock Matrix</h3>
                   <p className="text-sm text-muted-foreground">
-                    Set prices and stock status for each material and dimension combination.
+                    Set prices and stock status for each material and dimension combination. You can leave material or
+                    dimension blank if needed.
                   </p>
 
                   <div className="overflow-x-auto">
@@ -1029,48 +1140,153 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                       <thead>
                         <tr>
                           <th className="border p-2 bg-muted"></th>
-                          {variants.dimensions.map((dimension, i) => (
-                            <th key={i} className="border p-2 bg-muted text-center">
-                              {dimension.value}
-                            </th>
-                          ))}
+                          {variants.dimensions.length > 0 ? (
+                            variants.dimensions.map((dimension, i) => (
+                              <th key={i} className="border p-2 bg-muted text-center">
+                                {dimension.value || "Blank Dimension"}
+                              </th>
+                            ))
+                          ) : (
+                            <th className="border p-2 bg-muted text-center">No Dimension</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody>
-                        {variants.materials.map((material, materialIndex) => (
-                          <tr key={materialIndex}>
-                            <td className="border p-2 font-medium bg-muted">{material.name}</td>
-                            {variants.dimensions.map((dimension, dimensionIndex) => {
-                              // Find existing combination or create default
-                              const combination = variants.combinations.find(
-                                (c) => c.materialName === material.name && c.dimensionValue === dimension.value,
-                              ) || {
-                                materialName: material.name,
-                                dimensionValue: dimension.value,
-                                price: 0,
-                                inStock: true,
-                              }
+                        {variants.materials.length > 0 ? (
+                          variants.materials.map((material, materialIndex) => (
+                            <tr key={materialIndex}>
+                              <td className="border p-2 font-medium bg-muted">{material.name || "Blank Material"}</td>
+                              {variants.dimensions.length > 0 ? (
+                                variants.dimensions.map((dimension, dimensionIndex) => {
+                                  // Find existing combination or create default
+                                  const combination = variants.combinations.find(
+                                    (c) => c.materialName === material.name && c.dimensionValue === dimension.value,
+                                  ) || {
+                                    materialName: material.name,
+                                    dimensionValue: dimension.value,
+                                    price: 0,
+                                    inStock: true,
+                                  }
 
-                              return (
-                                <td key={dimensionIndex} className="border p-2">
+                                  return (
+                                    <td key={dimensionIndex} className="border p-2">
+                                      <div className="space-y-2">
+                                        <div>
+                                          <Label
+                                            htmlFor={`price-${materialIndex}-${dimensionIndex}`}
+                                            className="text-xs"
+                                          >
+                                            Price ($)
+                                          </Label>
+                                          <SafeInput
+                                            id={`price-${materialIndex}-${dimensionIndex}`}
+                                            type="number"
+                                            step="0.01"
+                                            value={combination.price}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                              const price = Number.parseFloat(e.target.value)
+                                              const updatedCombinations = [...variants.combinations]
+
+                                              // Find if this combination already exists
+                                              const existingIndex = updatedCombinations.findIndex(
+                                                (c) =>
+                                                  c.materialName === material.name &&
+                                                  c.dimensionValue === dimension.value,
+                                              )
+
+                                              if (existingIndex >= 0) {
+                                                // Update existing combination
+                                                updatedCombinations[existingIndex] = {
+                                                  ...updatedCombinations[existingIndex],
+                                                  price,
+                                                }
+                                              } else {
+                                                // Add new combination
+                                                updatedCombinations.push({
+                                                  materialName: material.name,
+                                                  dimensionValue: dimension.value,
+                                                  price,
+                                                  inStock: true,
+                                                })
+                                              }
+
+                                              setVariants({
+                                                ...variants,
+                                                combinations: updatedCombinations,
+                                              })
+                                            }}
+                                          />
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          <Switch
+                                            id={`stock-${materialIndex}-${dimensionIndex}`}
+                                            checked={combination.inStock}
+                                            onCheckedChange={(checked) => {
+                                              const updatedCombinations = [...variants.combinations]
+
+                                              // Find if this combination already exists
+                                              const existingIndex = updatedCombinations.findIndex(
+                                                (c) =>
+                                                  c.materialName === material.name &&
+                                                  c.dimensionValue === dimension.value,
+                                              )
+
+                                              if (existingIndex >= 0) {
+                                                // Update existing combination
+                                                updatedCombinations[existingIndex] = {
+                                                  ...updatedCombinations[existingIndex],
+                                                  inStock: checked,
+                                                }
+                                              } else {
+                                                // Add new combination
+                                                updatedCombinations.push({
+                                                  materialName: material.name,
+                                                  dimensionValue: dimension.value,
+                                                  price: 0,
+                                                  inStock: checked,
+                                                })
+                                              }
+
+                                              setVariants({
+                                                ...variants,
+                                                combinations: updatedCombinations,
+                                              })
+                                            }}
+                                          />
+                                          <Label
+                                            htmlFor={`stock-${materialIndex}-${dimensionIndex}`}
+                                            className="text-xs"
+                                          >
+                                            In Stock
+                                          </Label>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  )
+                                })
+                              ) : (
+                                <td className="border p-2">
                                   <div className="space-y-2">
                                     <div>
-                                      <Label htmlFor={`price-${materialIndex}-${dimensionIndex}`} className="text-xs">
+                                      <Label htmlFor={`price-${materialIndex}-0`} className="text-xs">
                                         Price ($)
                                       </Label>
                                       <SafeInput
-                                        id={`price-${materialIndex}-${dimensionIndex}`}
+                                        id={`price-${materialIndex}-0`}
                                         type="number"
                                         step="0.01"
-                                        value={combination.price}
+                                        value={
+                                          variants.combinations.find(
+                                            (c) => c.materialName === material.name && !c.dimensionValue,
+                                          )?.price || 0
+                                        }
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                           const price = Number.parseFloat(e.target.value)
                                           const updatedCombinations = [...variants.combinations]
 
                                           // Find if this combination already exists
                                           const existingIndex = updatedCombinations.findIndex(
-                                            (c) =>
-                                              c.materialName === material.name && c.dimensionValue === dimension.value,
+                                            (c) => c.materialName === material.name && !c.dimensionValue,
                                           )
 
                                           if (existingIndex >= 0) {
@@ -1083,7 +1299,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                             // Add new combination
                                             updatedCombinations.push({
                                               materialName: material.name,
-                                              dimensionValue: dimension.value,
+                                              dimensionValue: "",
                                               price,
                                               inStock: true,
                                             })
@@ -1098,15 +1314,18 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                     </div>
                                     <div className="flex items-center space-x-2">
                                       <Switch
-                                        id={`stock-${materialIndex}-${dimensionIndex}`}
-                                        checked={combination.inStock}
+                                        id={`stock-${materialIndex}-0`}
+                                        checked={
+                                          variants.combinations.find(
+                                            (c) => c.materialName === material.name && !c.dimensionValue,
+                                          )?.inStock ?? true
+                                        }
                                         onCheckedChange={(checked) => {
                                           const updatedCombinations = [...variants.combinations]
 
                                           // Find if this combination already exists
                                           const existingIndex = updatedCombinations.findIndex(
-                                            (c) =>
-                                              c.materialName === material.name && c.dimensionValue === dimension.value,
+                                            (c) => c.materialName === material.name && !c.dimensionValue,
                                           )
 
                                           if (existingIndex >= 0) {
@@ -1119,7 +1338,7 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                             // Add new combination
                                             updatedCombinations.push({
                                               materialName: material.name,
-                                              dimensionValue: dimension.value,
+                                              dimensionValue: "",
                                               price: 0,
                                               inStock: checked,
                                             })
@@ -1131,16 +1350,205 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                                           })
                                         }}
                                       />
-                                      <Label htmlFor={`stock-${materialIndex}-${dimensionIndex}`} className="text-xs">
+                                      <Label htmlFor={`stock-${materialIndex}-0`} className="text-xs">
                                         In Stock
                                       </Label>
                                     </div>
                                   </div>
                                 </td>
-                              )
-                            })}
+                              )}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td className="border p-2 font-medium bg-muted">No Material</td>
+                            {variants.dimensions.length > 0 ? (
+                              variants.dimensions.map((dimension, dimensionIndex) => (
+                                <td key={dimensionIndex} className="border p-2">
+                                  <div className="space-y-2">
+                                    <div>
+                                      <Label htmlFor={`price-0-${dimensionIndex}`} className="text-xs">
+                                        Price ($)
+                                      </Label>
+                                      <SafeInput
+                                        id={`price-0-${dimensionIndex}`}
+                                        type="number"
+                                        step="0.01"
+                                        value={
+                                          variants.combinations.find(
+                                            (c) => !c.materialName && c.dimensionValue === dimension.value,
+                                          )?.price || 0
+                                        }
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                          const price = Number.parseFloat(e.target.value)
+                                          const updatedCombinations = [...variants.combinations]
+
+                                          // Find if this combination already exists
+                                          const existingIndex = updatedCombinations.findIndex(
+                                            (c) => !c.materialName && c.dimensionValue === dimension.value,
+                                          )
+
+                                          if (existingIndex >= 0) {
+                                            // Update existing combination
+                                            updatedCombinations[existingIndex] = {
+                                              ...updatedCombinations[existingIndex],
+                                              price,
+                                            }
+                                          } else {
+                                            // Add new combination
+                                            updatedCombinations.push({
+                                              materialName: "",
+                                              dimensionValue: dimension.value,
+                                              price: 0,
+                                              inStock: true,
+                                            })
+                                          }
+
+                                          setVariants({
+                                            ...variants,
+                                            combinations: updatedCombinations,
+                                          })
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Switch
+                                        id={`stock-0-${dimensionIndex}`}
+                                        checked={
+                                          variants.combinations.find(
+                                            (c) => !c.materialName && c.dimensionValue === dimension.value,
+                                          )?.inStock ?? true
+                                        }
+                                        onCheckedChange={(checked) => {
+                                          const updatedCombinations = [...variants.combinations]
+
+                                          // Find if this combination already exists
+                                          const existingIndex = updatedCombinations.findIndex(
+                                            (c) => !c.materialName && c.dimensionValue === dimension.value,
+                                          )
+
+                                          if (existingIndex >= 0) {
+                                            // Update existing combination
+                                            updatedCombinations[existingIndex] = {
+                                              ...updatedCombinations[existingIndex],
+                                              inStock: checked,
+                                            }
+                                          } else {
+                                            // Add new combination
+                                            updatedCombinations.push({
+                                              materialName: "",
+                                              dimensionValue: dimension.value,
+                                              price: 0,
+                                              inStock: true,
+                                            })
+                                          }
+
+                                          setVariants({
+                                            ...variants,
+                                            combinations: updatedCombinations,
+                                          })
+                                        }}
+                                      />
+                                      <Label htmlFor={`stock-0-${dimensionIndex}`} className="text-xs">
+                                        In Stock
+                                      </Label>
+                                    </div>
+                                  </div>
+                                </td>
+                              ))
+                            ) : (
+                              <td className="border p-2">
+                                <div className="space-y-2">
+                                  <div>
+                                    <Label htmlFor="price-0-0" className="text-xs">
+                                      Price ($)
+                                    </Label>
+                                    <SafeInput
+                                      id="price-0-0"
+                                      type="number"
+                                      step="0.01"
+                                      value={
+                                        variants.combinations.find((c) => !c.materialName && !c.dimensionValue)
+                                          ?.price || 0
+                                      }
+                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const price = Number.parseFloat(e.target.value)
+                                        const updatedCombinations = [...variants.combinations]
+
+                                        // Find if this combination already exists
+                                        const existingIndex = updatedCombinations.findIndex(
+                                          (c) => !c.materialName && !c.dimensionValue,
+                                        )
+
+                                        if (existingIndex >= 0) {
+                                          // Update existing combination
+                                          updatedCombinations[existingIndex] = {
+                                            ...updatedCombinations[existingIndex],
+                                            price,
+                                          }
+                                        } else {
+                                          // Add new combination
+                                          updatedCombinations.push({
+                                            materialName: "",
+                                            dimensionValue: "",
+                                            price: 0,
+                                            inStock: true,
+                                          })
+                                        }
+
+                                        setVariants({
+                                          ...variants,
+                                          combinations: updatedCombinations,
+                                        })
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <Switch
+                                      id="stock-0-0"
+                                      checked={
+                                        variants.combinations.find((c) => !c.materialName && !c.dimensionValue)
+                                          ?.inStock ?? true
+                                      }
+                                      onCheckedChange={(checked) => {
+                                        const updatedCombinations = [...variants.combinations]
+
+                                        // Find if this combination already exists
+                                        const existingIndex = updatedCombinations.findIndex(
+                                          (c) => !c.materialName && !c.dimensionValue,
+                                        )
+
+                                        if (existingIndex >= 0) {
+                                          // Update existing combination
+                                          updatedCombinations[existingIndex] = {
+                                            ...updatedCombinations[existingIndex],
+                                            inStock: checked,
+                                          }
+                                        } else {
+                                          // Add new combination
+                                          updatedCombinations.push({
+                                            materialName: "",
+                                            dimensionValue: "",
+                                            price: 0,
+                                            inStock: true,
+                                          })
+                                        }
+
+                                        setVariants({
+                                          ...variants,
+                                          combinations: updatedCombinations,
+                                        })
+                                      }}
+                                    />
+                                    <Label htmlFor="stock-0-0" className="text-xs">
+                                      In Stock
+                                    </Label>
+                                  </div>
+                                </div>
+                              </td>
+                            )}
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -1245,6 +1653,14 @@ export function ProductForm({ initialData, isEditing = false }: ProductFormProps
                     ))}
                   </div>
                 </div>
+                {formError && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-600 flex items-center">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      {formError}
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -307,14 +307,16 @@ export function convertRowToProductData(
                 const price = Number(priceStr) || 0
                 const inStock = inStockStr?.toLowerCase() === "true" || inStockStr?.toLowerCase() === "yes" || true
 
+                // Create the combination object, allowing empty materialName or dimensionValue
                 return {
-                  materialName,
-                  dimensionValue,
+                  materialName: materialName || "",
+                  dimensionValue: dimensionValue || "",
                   price,
                   inStock,
                 }
               })
-              .filter((c) => c.materialName && c.dimensionValue)
+              // Only filter out combinations where both materialName and dimensionValue are empty
+              .filter((c) => !(c.materialName === "" && c.dimensionValue === ""))
 
             if (combinations.length > 0) {
               if (!productData.variants) {

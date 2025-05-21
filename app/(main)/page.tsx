@@ -97,7 +97,8 @@ function getFormattedPrice(product) {
 
 export default async function Home() {
   // Fetch weekly best sellers from the database
-  const allProducts = await getProducts()
+  const productsData = await getProducts()
+  const allProducts = productsData.products || []
 
   // Filter for products marked as weekly best sellers
   let weeklyBestSellers = allProducts.filter((product) => product.isWeeklyBestSeller)
