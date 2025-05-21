@@ -20,7 +20,7 @@ export async function getCategories(): Promise<Category[]> {
 
     return categories.map((category) => ({
       ...category,
-      id: category._id.toString(),
+      id: category.id.toString(),
       _id: undefined,
     })) as Category[]
   } catch (error) {
@@ -40,7 +40,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
 
     return {
       ...category,
-      id: category._id.toString(),
+      id: category.id.toString(),
       _id: undefined,
     } as Category
   } catch (error) {
@@ -63,7 +63,7 @@ export async function getCategoryById(id: string): Promise<Category | null> {
 
     return {
       ...category,
-      id: category._id.toString(),
+      id: category.id.toString(),
       _id: undefined,
     } as Category
   } catch (error) {
