@@ -30,7 +30,7 @@ import { createProduct, updateProduct, deleteProduct } from "@/app/actions/produ
 import { getCategories } from "@/app/actions/category-actions"
 
 // Define the placeholder image URL
-const PLACEHOLDER_IMAGE_URL = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
+const PLACEHOLDER_IMAGE_URL = "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
 
 // Define the form schema
 const productFormSchema = z.object({

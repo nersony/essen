@@ -11,9 +11,9 @@ const s3Client = new S3Client({
   },
 })
 
-const BUCKET_NAME = "assets-xyzap"
-const CDN_ENDPOINT = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com"
-const PLACEHOLDER_IMAGE_URL = "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
+const BUCKET_NAME = "assets-singabyte"
+const CDN_ENDPOINT = "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com"
+const PLACEHOLDER_IMAGE_URL = "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
 
 // Check if an image URL is from DigitalOcean Spaces
 export function isDigitalOceanImage(url: string): boolean {
@@ -25,7 +25,7 @@ export async function validateImageUrls(urls: string[]): Promise<{ valid: boolea
   // Check if all URLs are valid
   for (const url of urls) {
     // Allow the placeholder image URL
-    if (url === "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png") {
+    if (url === "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png") {
       continue
     }
 

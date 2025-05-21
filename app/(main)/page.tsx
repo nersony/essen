@@ -161,7 +161,7 @@ export default async function Home() {
       {/* Hero Section */}
       <section className="relative h-[80vh] overflow-hidden">
         <VideoBackground
-          videoSrc="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
+          videoSrc="https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
           className="absolute inset-0"
         />
         {/* <div className="container relative z-10 flex h-full flex-col items-center justify-center text-center text-white pt-16">

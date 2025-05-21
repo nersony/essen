@@ -26,7 +26,7 @@ export type ProductExcelRow = z.infer<typeof productExcelSchema>
 
 // Define the placeholder image URL
 export const PLACEHOLDER_IMAGE_URL =
-  "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
+  "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png"
 
 // Generate a slug from a name
 export function generateSlug(name: string): string {

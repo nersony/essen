@@ -44,7 +44,7 @@ export default function ShowroomPage() {
                 <div className="absolute inset-0 w-full h-full bg-black">
                     <div className="relative w-full h-full">
                         <video
-                            src="https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
+                            src="https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/video/ESSEN%20Showroom.mp4"
                             autoPlay
                             muted
                             loop

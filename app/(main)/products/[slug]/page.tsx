@@ -376,7 +376,7 @@ Please provide more information about this product.
                 ensureCorrectImagePath(
                   selectedImage ||
                     product.images[0] ||
-                    "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
+                    "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
                 ) || "/placeholder.svg"
               }
               alt={product.name}
@@ -398,7 +398,7 @@ Please provide more information about this product.
                 >
                   <Image
                     src={ensureCorrectImagePath(
-                      image || "https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
+                      image || "https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/products/placeholder.png",
                     )}
                     alt={`${product.name} - Image ${index + 1}`}
                     fill

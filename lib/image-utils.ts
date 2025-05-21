@@ -20,7 +20,7 @@ export function ensureCorrectImagePath(url: string): string {
       // Extract the filename from the old path
       const filename = url.split("/").pop()
       if (filename) {
-        return `https://assets-xyzap.sgp1.cdn.digitaloceanspaces.com/essen/${filename}`
+        return `https://assets-singabyte.sgp1.cdn.digitaloceanspaces.com/essen/${filename}`
       }
     }
   
